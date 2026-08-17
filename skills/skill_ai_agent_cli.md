@@ -54,6 +54,8 @@ All production calls use files:
 2. Tell the child to write the complete product to a result path.
 3. Capture stdout, stderr, and any vendor log file separately.
 
+The wait mechanism is process lifetime, not `sleep`. `claude -p`, `codex exec`, `opencode run`, `agy --print`, and `grok -p` stay up until the agent turn ends. Set the wrapper timeout high enough and wait for exit. A vendor slash command that returns immediately (Grok `/deep-research`) is not a completed turn; see [`grok_cli.md`](./grok_cli.md).
+
 The call succeeded only when the process exits 0 **and** the result file exists, is non-empty, and satisfies the task's hard checks (tokens, schema, required URLs). A fluent stdout summary is not a fallback product.
 
 Keep the argv prompt short: "read this file, follow it, write the result there." Long bodies belong in the prompt file.

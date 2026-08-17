@@ -36,6 +36,8 @@ If version output or model names look like another project, you have the wrong b
 
 Auth is `grok login` (subscription / OAuth) or `XAI_API_KEY`. `grok models` reports which path is active.
 
+If `XAI_API_KEY` is set in the environment, 1.0.4 uses the API key even when `~/.grok/auth.json` exists. Unset it to use the stored subscription session. Remote / SSH login is `grok login --device-auth` (alias `--device-code`). Do not combine it with `--oauth`; that pair is mutually exclusive. `--oauth` needs a browser that can hit `127.0.0.1` on the machine running `grok`.
+
 ## Command shape
 
 Single-turn from argv:
@@ -58,6 +60,22 @@ grok --prompt-file /absolute/path/to/prompt.md \
 `--prompt-file` is already a single-turn path. Do not invent `grok print` or `grok exec`.
 
 `grok agent` starts SDK transports (`stdio`, `headless`, `serve`, `leader`). Use it only when you are wiring those protocols. Default automation is `-p` / `--prompt-file`.
+
+## Wait model
+
+`grok -p` and `--prompt-file` keep the process alive until the **agent turn** ends, the same way `claude -p` and `codex exec` do. The wrapper should set a large enough timeout and wait for process exit. Do not `sleep` and poll.
+
+That is not the same as “every slash command runs to completion before exit.”
+
+`/deep-research <query>` is a built-in **background workflow**. In the TUI it returns immediately and posts the report later. In headless, a prompt that is only that slash command also returns immediately (`stopReason: end_turn`). The parent then exits, the session shuts down, and the workflow is interrupted. Official status after that shutdown: the run cannot resume.
+
+To run the official deep-research workflow from headless, do **not** send `/deep-research …` as the whole prompt. Tell the model to invoke the built-in `workflow` tool named `deep-research`, stay in the turn until that workflow finishes, and write the cited report to a result path. Then `-p` blocks until the turn ends.
+
+Even when the workflow completes, the parent may exit 0 without writing the requested file. Recover the durable report from the session tree:
+
+`~/.grok/sessions/<urlencoded-cwd>/<sessionId>/workflows/wf_*/scratch/report.md`
+
+A fluent stdout summary is not the product. The completion check below still requires the result file.
 
 ## Defaults that matter
 
@@ -101,6 +119,9 @@ grok --prompt-file /absolute/path/to/prompt.md \
 | Calling `agent` | Wrong binary or a name collision | Call `grok` |
 | Assuming `-p` creates a worktree | Docs say it does not | Use `--cwd` or an interactive worktree |
 | Custom `--sandbox` name with no profile | Process refuses to start | Define the profile or omit the flag |
+| Headless prompt is only `/deep-research …` | Turn ends at once; workflow dies on process exit and cannot resume | Ask the model to call the built-in `deep-research` workflow tool and stay in the turn |
+| `XAI_API_KEY` still exported | `grok models` says API key; subscription login is ignored | Unset the variable for that process |
+| Treating exit 0 as success | Workflow report may exist only under `~/.grok/sessions/…/workflows/…/scratch/report.md` | Require the result file; copy from the session tree if the parent skipped the write |
 
 ## Official docs
 
