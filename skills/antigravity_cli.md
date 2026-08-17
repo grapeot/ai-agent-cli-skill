@@ -1,18 +1,42 @@
 # Antigravity CLI
 
-Headless `agy --print` invocations. Verified against Antigravity CLI **1.1.13**.
+## Metadata
 
-`agy-ide` is the IDE launcher. `agy-ide chat` opens the GUI. Automation uses `agy`.
+- **Type**: Tool / Focused Skill
+- **Target**: Headless `agy --print` invocations
+- **Verified Version**: Antigravity CLI **1.1.13**
+- **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
-## Goal
+## Goal & Boundaries
 
-Use an Antigravity subscription to run a Gemini (or other listed) agent, write a result file, and leave stdout/stderr/logs that can be audited.
+### Goal
 
-## When to load this file
+Utilize an Antigravity subscription to execute a Gemini (or other listed) agent headlessly, write a concrete result file to disk, and capture verifiable audit streams (stdout, stderr, event logs).
 
-The user asked for Antigravity / `agy`, or the root skill selected it as the Gemini-subscription path.
+### When to Load
 
-## Install
+Load this file when the user asks for Antigravity / `agy`, or when the root skill router selects it as the Gemini subscription path.
+
+### Boundaries & Authentication
+
+- **Authentication Channel**: `agy` authenticates via Antigravity subscription credentials stored in the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` fails to list models, sign in via the Antigravity desktop application. Do not fall back to `GEMINI_API_KEY` (that routes to a distinct API billing path).
+- **Subcommand Boundaries**: 1.1.13 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
+
+## Acceptance Criteria
+
+Execution is complete and successful only when all four conditions are satisfied:
+
+1. **Exit Code**: Process terminates with code 0.
+2. **Artifact Materialization**: The designated result file exists on disk and is non-empty.
+3. **Hard Checks**: The result file passes all task-specific constraints and validation checks.
+4. **Clean Error Stream**: stderr contains no unhandled error. (Startup log messages indicating an initial unauthenticated state followed by `silent auth succeeded` are expected and do not indicate failure if exit code is 0).
+
+> [!IMPORTANT]
+> Stdout serves only as an execution summary note; do not treat stdout content as the primary product.
+
+## Available Resources & CLI Reference
+
+### Installation & Binary Verification
 
 ```bash
 if ! command -v agy >/dev/null 2>&1; then
@@ -26,15 +50,9 @@ agy --version
 agy models
 ```
 
-On a managed machine, prefer a pinned GitHub release asset and its published SHA-256: https://github.com/google-antigravity/antigravity-cli/releases
+On managed environments, prefer downloading pinned release assets with published SHA-256 hashes from: https://github.com/google-antigravity/antigravity-cli/releases
 
-`agy` uses the Antigravity subscription and the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` cannot list models, sign in through the Antigravity app first. Do not fall back to `GEMINI_API_KEY`; that is a different billing path.
-
-1.1.13 has no `agy login` subcommand.
-
-## Command shape
-
-There is no `agy run`. `--print` / `-p` is a top-level flag.
+### Command Shape
 
 ```bash
 agy --print \
@@ -49,68 +67,49 @@ agy --print \
   2> "/absolute/path/to/stderr.txt"
 ```
 
-`--dangerously-skip-permissions` is only for a small trusted scratch directory and only together with `--sandbox`. The prompt must name the single result path and forbid other writes.
+### Defaults & Key Flags
 
-`--print-timeout` defaults to **5m** on 1.1.13. Set it explicitly. Keep an outer process timeout a few seconds higher so logs can flush.
-
-Headless `--print` still inherits persistent `settings.json` policy. Review global and project AGY settings before a production call.
-
-## Defaults that matter
-
-| Flag | Use |
+| Flag | Description & Operational Boundary |
 |---|---|
-| `--print` / `-p` | Headless single prompt |
-| `--model` | Always pass it. Default in this skill: `gemini-3.7-flash-high` |
-| `--mode` | `accept-edits` or `plan` |
-| `--sandbox` | Restrict the terminal |
-| `--dangerously-skip-permissions` | Auto-approve tool requests |
-| `--print-timeout` | Internal wait; default 5m |
-| `--log-file` | Timestamped event log |
-| `--output-format` | `text` (default), `json`, `stream-json` — added by 1.1.13 |
-| `--json-schema` | Structured final result; with `stream-json` it applies to the final item |
-| `--effort` | `low`, `medium`, `high` |
-| `--add-dir` | Extra workspace directory |
-| `-c` / `--continue` | Continue the most recent conversation |
-| `--conversation` | Resume by id |
+| `--print` / `-p` | Headless execution for a single prompt. |
+| `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.7-flash-high`. |
+| `--mode` | Operational mode: `accept-edits` or `plan`. |
+| `--sandbox` | Restrict terminal command capabilities. |
+| `--dangerously-skip-permissions` | Auto-approve tool requests. Restrict usage to small trusted scratch directories, only in combination with `--sandbox`, and ensure prompt strictly limits write scope. |
+| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.13). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
+| `--log-file` | Path for timestamped JSON/event logs. |
+| `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). |
+| `--json-schema` | Constrain final structured output; applies to final item in `stream-json`. |
+| `--effort` | Reasoning effort: `low`, `medium`, `high`. |
+| `--add-dir` | Add extra accessible workspace directory. |
+| `-c` / `--continue` | Continue the most recent conversation. |
+| `--conversation` | Resume a conversation by ID. Omit `--continue`/`--conversation` for a fresh session. |
 
-A call without `--continue` / `--conversation` is a fresh conversation.
+> [!NOTE]
+> Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-## Models (1.1.13)
+### Available Models (1.1.13)
 
-`agy models` listed:
-
-- `gemini-3.7-flash-high` / `medium` / `low` — default high
+Verified model list via `agy models`:
+- `gemini-3.7-flash-high` (default), `gemini-3.7-flash-medium`, `gemini-3.7-flash-low`
 - `gemini-3.6-flash-*`, `gemini-3.5-flash-*`
 - `gemini-3.1-pro-high`, `gemini-3.1-pro-low`
 - `claude-sonnet-4-6`, `claude-opus-4-6-thinking`
 - `gpt-oss-120b-medium`
 
-An invalid model name exits non-zero and prints the list. Do not silently fall back.
+Supplying an invalid model name causes immediate non-zero exit and prints the available model list. Do not attempt silent fallbacks.
 
-## Completion check
+## Known Traps
 
-All of:
-
-1. Exit code 0
-2. Result file exists and is non-empty
-3. Result file satisfies the task's hard checks
-4. stderr has no unhandled error
-
-Stdout is a completion note. Do not use it as the product.
-
-Startup logs may say the user is not logged in and then `silent auth succeeded`. That is not a failure if the process later exits 0.
-
-## Known traps
-
-| Trap | What happens | What to do |
+| Trigger | Failure Mode | Remedy |
 |---|---|---|
-| `agy run ...` | Wrong interactive path; may hang on `/dev/tty` | Use top-level `agy --print` |
-| Assuming there is no JSON mode | Stale relative to 1.1.13 | `--output-format json` / `stream-json` exist; still keep a result file |
-| Trusting default 5m timeout | Long writes die mid-run | Pass `--print-timeout` |
-| Starting in a large private tree | Secrets enter model context | Use a minimal scratch workspace |
-| Treating `agy-ide chat` as fallback | Opens a GUI | Not a headless completion |
+| Running `agy run ...` | Enters unintended interactive flow; may block waiting for `/dev/tty` | Use top-level flag `agy --print` |
+| Assuming no JSON output mode exists | Stale assumption relative to 1.1.13 capabilities | Use `--output-format json` or `stream-json` as needed, but retain result file verification |
+| Relying on default 5m `--print-timeout` | Extended generation tasks abort mid-execution | Explicitly pass `--print-timeout` (e.g., `10m`) |
+| Invoking inside a large private repository | Sensitive sibling files leak into model context | Isolate execution inside a minimal scratch workspace |
+| Attempting `agy-ide chat` as headless fallback | Launches interactive GUI interface | Use CLI binary `agy --print` |
 
-## Official docs
+## Official References
 
 - https://github.com/google-antigravity/antigravity-cli
 - https://antigravity.google/product/antigravity-cli

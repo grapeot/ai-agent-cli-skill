@@ -1,16 +1,38 @@
 # Codex CLI
 
-Non-interactive `codex exec` invocations. Verified against Codex CLI **0.144.6**.
+## Metadata
 
-## Goal
+- **Type**: Tool / Focused Skill
+- **Target**: Non-interactive `codex exec` invocations
+- **Verified Version**: Codex CLI **0.144.6**
 
-Run a Codex task headlessly and recover a clean last message or schema-valid JSON from disk.
+## Goal & Boundaries
 
-## When to load this file
+### Goal
 
-The user asked for Codex, or the root skill selected `codex`.
+Execute a Codex task headlessly and recover a clean last agent message or schema-validated JSON payload directly from disk.
 
-## Command shape
+### When to Load
+
+Load this file when the user asks for Codex, or when the root skill router selects `codex`.
+
+### Boundaries & Prohibited Flags
+
+- **Prohibited Approval Flag**: Interactive `codex` supports `-a` / `--ask-for-approval`, but **`codex exec` strictly rejects `-a`**. Verified behavior: `codex exec -a never` exits code 2 with `unexpected argument '-a' found`. Never include `-a` in exec commands.
+- **Model Family**: Current Codex generation is GPT-5.x; do not copy obsolete `gpt-5.2` examples.
+
+## Acceptance Criteria
+
+A Codex headless run is successful only when:
+
+- **Exit Code**: Process terminates with code 0.
+- **Last Message Extraction**: The file designated by `-o` exists and contains the clean final agent message (not raw event logs).
+- **Schema Conformance**: If `--output-schema` was specified, the `-o` output file validates against that JSON Schema.
+- **Task Artifacts**: If a dedicated result file was required in the prompt, that file exists on disk and is non-empty.
+
+## Available Resources & CLI Reference
+
+### Command Shape
 
 ```bash
 codex exec --skip-git-repo-check --sandbox read-only --color never \
@@ -20,62 +42,54 @@ codex exec --skip-git-repo-check --sandbox read-only --color never \
   "Read /absolute/path/to/prompt.md and follow it exactly."
 ```
 
-`exec` may be spelled `e`. A prompt of `-` reads stdin. If both a positional prompt and stdin are present, stdin is appended as a `<stdin>` block.
+- Subcommand alias: `exec` may be abbreviated as `e`.
+- Stdin input: A prompt argument of `-` reads from stdin. If both a positional prompt and stdin are provided, stdin is appended inside a `<stdin>` block.
 
-## Defaults that matter
+### Defaults & Key Flags
 
-| Flag | Use |
+| Flag | Description & Operational Boundary |
 |---|---|
-| `-m` / `--model` | Model id. Current Codex generation is GPT-5.x; do not copy old `gpt-5.2` examples. |
-| `-c model_reasoning_effort=` | `low` / `medium` / `high`. This is a config override, not a standalone flag. |
-| `-s` / `--sandbox` | `read-only`, `workspace-write`, `danger-full-access` |
-| `--dangerously-bypass-approvals-and-sandbox` | Only when an outer sandbox already exists |
-| `--skip-git-repo-check` | Required outside a git repo |
-| `--ephemeral` | Do not persist session files |
-| `-C` / `--cd` | Agent working root |
-| `--add-dir` | Extra writable directory |
-| `--color never` | Strip ANSI from stdout |
-| `-o` / `--output-last-message` | Clean last agent message on disk. Prefer this over scraping stdout. |
-| `--output-schema` | JSON Schema file for the final message. Works with `-o`. |
-| `--json` | JSONL event stream on stdout |
-| `-i` / `--image` | Attach image files |
-| `--ignore-user-config` | Skip `$CODEX_HOME/config.toml`; auth still uses `CODEX_HOME` |
+| `-m` / `--model` | Target model id (GPT-5.x generation). |
+| `-c model_reasoning_effort=` | Reasoning effort override: `low`, `medium`, `high`. (Configuration override, not a standalone flag). |
+| `-s` / `--sandbox` | Sandbox boundary: `read-only` (for reasoning-only tasks), `workspace-write` (for file edits), or `danger-full-access`. |
+| `--dangerously-bypass-approvals-and-sandbox` | Bypass sandbox; use only when an outer isolation sandbox is already active. |
+| `--skip-git-repo-check` | Required when running outside a git repository (e.g., in `/tmp`). |
+| `--ephemeral` | Do not persist session files on disk. |
+| `-C` / `--cd` | Set agent working directory root. |
+| `--add-dir` | Add extra writable directory. |
+| `--color never` | Suppress ANSI escape codes in stdout. |
+| `-o` / `--output-last-message` | Path to write the clean final agent message. Prefer this over stdout parsing. |
+| `--output-schema` | JSON Schema file path to constrain and validate the `-o` final message. |
+| `--json` | Stream JSONL event lines on stdout. |
+| `-i` / `--image` | Attach image files to the prompt. |
+| `--ignore-user-config` | Skip `$CODEX_HOME/config.toml` (authentication still resolves via `CODEX_HOME`). |
 
-Interactive `codex` still has `-a` / `--ask-for-approval`. **`codex exec` rejects `-a`.** Verified: `codex exec -a never` exits 2 with `unexpected argument '-a' found`. Do not copy that flag into exec commands.
-
-For file writes use `--sandbox workspace-write`. For reasoning-only use `read-only`.
-
-## JSONL events
-
-`--json` emits events such as `thread.started`, `turn.started`, `item.completed`, `turn.completed`. The final answer is an `item` with `type == "agent_message"` and a `text` field. Ignore occasional stderr lines about cache TTL.
-
-## Other automation commands
+### Additional Automation Commands
 
 - `codex exec resume <session_id>` or `--last`
 - `codex review` / `codex exec review`
 - `codex sandbox <command...>`
 - `codex doctor`
 
-## Image generation
+## Enabling Guidance & Features
 
-Codex can trigger built-in `imagegen` from a natural-language exec prompt. Ask it to use imagegen and attach references with `--image` when needed. Generated files usually land under the Codex home `generated_images/` directory for that session. Stdout may not print the path; inspect that directory after the run. This uses the Codex / ChatGPT subscription, not a separate image-API skill.
+### JSONL Event Stream
 
-## Completion check
+When `--json` is enabled, stdout emits event objects (`thread.started`, `turn.started`, `item.completed`, `turn.completed`). The final answer is inside an `item` object where `type == "agent_message"` with a `text` field. Occasional stderr notices regarding cache TTL can be safely ignored.
 
-- Exit code 0
-- `-o` file exists and is the last message, not an event dump
-- If `--output-schema` was set: the `-o` file validates
-- If a result file was required in the prompt: that file exists and is non-empty
+### Built-in Image Generation
 
-## Known traps
+Codex can trigger its built-in `imagegen` capability directly from a natural-language exec prompt. Instruct it to generate images and pass reference attachments using `--image` if necessary. Output images are typically saved in the session's `generated_images/` directory within the Codex home directory. Stdout may not output the exact path; inspect the `generated_images/` directory upon process completion. This uses the Codex / ChatGPT subscription rather than a separate image API.
 
-| Trap | What happens | What to do |
+## Known Traps
+
+| Trigger | Failure Mode | Remedy |
 |---|---|---|
-| `codex exec -a never` | Immediate clap error | Drop `-a`; use `--sandbox` |
-| Parsing mixed stdout | Events, warnings, ANSI | `-o` plus `--color never` |
-| Running in `/tmp` without `--skip-git-repo-check` | Exec refuses | Pass the flag or `--cd` into a repo |
-| Leaving sessions on disk | Rollout files pile up | `--ephemeral` for one-shots |
+| Passing `-a never` to `codex exec` | Immediate CLI parse error (`unexpected argument '-a' found`) | Omit `-a`; configure isolation via `--sandbox` |
+| Scraping unformatted stdout | Output polluted with event objects, warnings, and ANSI codes | Use `-o` for message file and specify `--color never` |
+| Executing in `/tmp` without `--skip-git-repo-check` | Exec refuses to run outside a git repository | Pass `--skip-git-repo-check` or use `--cd` to point to a repository |
+| Omitting `--ephemeral` on one-shot runs | Session rollout files accumulate indefinitely on disk | Supply `--ephemeral` for one-off automation runs |
 
-## Official docs
+## Official References
 
 - https://developers.openai.com/codex

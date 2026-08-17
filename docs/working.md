@@ -4,6 +4,7 @@
 
 ### 2026-08-16
 
+- Rewrote all six skill files to the meta-skill shape (goal, acceptance, resources, enabling guidance, real traps) without changing CLI facts. Restored two AGY drift items: Codex resume stays `codex exec resume <session_id>` or `--last` (not `codex exec --last`); Antigravity stderr check stays “no unhandled error,” not “fatal errors only.”
 - Documented Grok headless wait model: `-p` blocks until the turn ends, but a prompt that is only `/deep-research` returns immediately, kills the background workflow on exit, and cannot resume. Use the built-in `workflow` tool in-turn. `XAI_API_KEY` overrides stored subscription login. Exit 0 is not enough if the parent skipped the result file; recover from `~/.grok/sessions/.../workflows/.../scratch/report.md`.
 - Scaffolded the public skill pack: docs, root router, five focused CLI skills, hygiene tests, CI.
 - Verified local binaries: Claude Code 2.1.220, Codex 0.144.6, Antigravity 1.1.13, Grok Build 1.0.4.
@@ -22,3 +23,4 @@
 - Grok `/deep-research` is a background workflow, not a long foreground turn. Headless `-p` with that slash command as the whole prompt exits in seconds; session shutdown then marks the run interrupted and unrestorable. Invoking the same built-in via the `workflow` tool keeps the parent turn open until Plan → Research → Verify → Report finish.
 - On 1.0.4, a set `XAI_API_KEY` wins over `~/.grok/auth.json`. `grok models` is the check. Remote login is `--device-auth`, not `--oauth`.
 - A completed Grok workflow can still leave the caller-requested result file unwritten. The durable report lives under the session workflow scratch directory.
+- A form-only rewrite still needs a fact audit. AGY expanded `codex exec resume … or --last` into `codex exec --last`, and narrowed Antigravity’s stderr check to “fatal” errors. Both looked like cleanup. Compare command tokens, not just section titles.

@@ -1,18 +1,41 @@
 # OpenCode CLI
 
-Non-interactive `opencode run` and `opencode serve` invocations. Interface taken from the official CLI docs dated **2026-08-16**. Re-run `opencode --help` on the target machine before a production change; this file was not checked against a local binary in the authoring session.
+## Metadata
 
-## Goal
+- **Type**: Tool / Focused Skill
+- **Target**: Non-interactive `opencode run` and `opencode serve` invocations
+- **Verified Date**: Interface derived from official CLI documentation dated **2026-08-16** (re-run `opencode --help` on target machine before production changes; this file was not verified against a local binary in the authoring session)
 
-Run an OpenCode task headlessly, optionally against an already-running server, and recover a result file (with stdout JSON as fallback).
+## Goal & Boundaries
 
-## When to load this file
+### Goal
 
-The user asked for OpenCode, or the root skill selected `opencode`.
+Run an OpenCode task headlessly—either standalone or attached to an existing server—and recover a verified result file (falling back to stdout JSON extraction only when necessary).
 
-## Command shape
+### When to Load
 
-Standalone run is valid:
+Load this file when the user requests OpenCode, or when the root skill router selects `opencode`.
+
+### Workspace & Execution Boundaries
+
+- **Workspace Scoping**: OpenCode tools are strictly scoped to the server/project directory (`--dir`). Prompt files and result destination files must reside within that directory tree. Paths outside the project root (such as `/tmp/prompt.md`) cause file access failures.
+- **Provider Parameter Restrictions**: Do not forward unsupported sampling parameters (`presence_penalty`, `frequency_penalty`, `stop`) unless specifically documented by the chosen provider/model, as some providers will reject requests containing unknown parameters.
+- **Shared Server Hygiene**: Do not terminate or restart a shared `opencode serve` process started by another caller, as doing so drops all other active client connections.
+
+## Acceptance Criteria
+
+An invocation is considered successful when:
+
+- **Exit Status**: Process exits with code 0.
+- **Artifact Verification**: The result file exists on disk and is non-empty. Never trust a mere prose "done" notice in stdout.
+- **Degraded Fallback**: If the result file is empty, parse `--format json` stdout for a JSON object and treat it as degraded success only if the extracted object matches the expected schema.
+- **Bounded Retries**: Limit retry attempts to a bounded count (three attempts is sufficient) before terminating with failure.
+
+## Available Resources & CLI Reference
+
+### Command Shapes
+
+Standalone execution (valid directly; older notes claiming `opencode run` requires a pre-existing server to prevent "Session not found" errors are obsolete as of 2026-08-16):
 
 ```bash
 opencode run --format json -m "provider/model" \
@@ -20,61 +43,49 @@ opencode run --format json -m "provider/model" \
   "Read /absolute/path/to/project/tmp/prompt.md and write JSON to /absolute/path/to/project/tmp/result.json."
 ```
 
-Attach to a long-lived server when you want to avoid MCP/server cold start:
+Attach to a persistent server (eliminates MCP/server startup overhead):
 
 ```bash
 opencode serve --port 4096
 opencode run --attach "http://localhost:4096" --format json -m "provider/model" "..."
 ```
 
-Older notes that `opencode run` always fails with "Session not found" unless a server is already up are stale relative to the 2026-08-16 docs.
+### Defaults & Key Flags
 
-## Defaults that matter
-
-| Flag | Use |
+| Flag | Description & Operational Boundary |
 |---|---|
-| `--attach` | URL of a running `serve` / `web` backend |
-| `-m` / `--model` | `provider/model` |
-| `--agent` | Agent name (default depends on config) |
-| `--dir` | Working directory. When attaching, this is a path on the server |
-| `--format` | `json` for raw JSON events |
-| `--variant` | Provider-specific reasoning effort (`high`, `max`, `minimal`, …) |
-| `--file` / `-f` | Attach files to the message |
-| `--continue` / `-c` | Continue the last session |
-| `--session` / `-s` | Continue a session id |
-| `--fork` | Fork when continuing |
-| `--title` | Session title |
-| `--auto` | Auto-approve permissions that are not denied |
-| `--port` | Local server port for a one-shot run (random if omitted) |
-| `--username` / `--password` | Basic auth for a protected server |
+| `--attach` | URL of an active `serve` or `web` backend. |
+| `-m` / `--model` | Target model in format `provider/model`. |
+| `--agent` | Specific agent configuration name (defaults per configuration). |
+| `--dir` | Working directory. When attaching to a server, represents path on the server. |
+| `--format` | Output format: `json` emits raw JSON events. |
+| `--variant` | Provider reasoning effort setting (`high`, `max`, `minimal`, etc.). |
+| `--file` / `-f` | Attach files to message context. |
+| `--continue` / `-c` | Resume the most recent session. |
+| `--session` / `-s` | Resume a session by ID. |
+| `--fork` | Fork the session upon continuation. |
+| `--title` | Set session title. |
+| `--auto` | Automatically approve permissions that are not explicitly denied. |
+| `--port` | Local port for one-shot server (assigned randomly if omitted). |
+| `--username` / `--password` | Basic authentication credentials for protected servers. |
 
-`opencode serve` and `opencode web` start the HTTP API. `web` also opens a browser. Set `OPENCODE_SERVER_PASSWORD` to enable basic auth (username defaults to `opencode`).
+### Server Management & Model Discovery
 
-List models with `opencode models [provider]`.
+- `opencode serve`: Starts the background HTTP API.
+- `opencode web`: Starts the HTTP API and opens a web browser.
+- Set environment variable `OPENCODE_SERVER_PASSWORD` to enable basic authentication (username defaults to `opencode`).
+- Discover available models via: `opencode models [provider]`.
 
-## Workspace boundary
+## Known Traps
 
-OpenCode tools are scoped to the server/project directory. Prompt files and result files must live inside that tree. Paths such as `/tmp/prompt.md` are a common failure when the server was started from a project root.
-
-## Completion check
-
-- Exit code 0
-- Result file exists and is non-empty
-- If the result file is empty: parse `--format json` stdout for a JSON object and treat that as a degraded success only when the schema matches
-- Retry a bounded number of times (three is enough) before failing
-
-Do not trust a prose "done" line in stdout.
-
-## Known traps
-
-| Trap | What happens | What to do |
+| Trigger | Failure Mode | Remedy |
 |---|---|---|
-| Result path outside the project | Agent cannot write it | Keep I/O under `--dir` |
-| Agent prints JSON and skips the file | Empty result file | Extract JSON from stdout, then retry |
-| Forwarding unsupported sampling params | Some providers reject the request | Do not send `presence_penalty` / `frequency_penalty` / `stop` unless that model documents them |
-| Killing a shared `serve` process | Drops other attached clients | Do not restart a server you did not start |
+| Setting result path outside the project directory | Child agent cannot access or write to the path | Ensure all prompt and result file paths reside under `--dir` |
+| Agent prints JSON to stdout but skips file write | Result file is missing or empty | Extract JSON from stdout, validate schema, then retry |
+| Passing unsupported sampling parameters | Provider API rejects request | Do not send `presence_penalty`, `frequency_penalty`, or `stop` unless documented by model |
+| Terminating a shared `opencode serve` process | Drops active connections of other attached clients | Only stop servers initialized by your own wrapper |
 
-## Official docs
+## Official References
 
 - https://opencode.ai/docs/cli
 - https://opencode.ai/docs/server
