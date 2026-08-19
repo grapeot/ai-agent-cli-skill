@@ -27,7 +27,7 @@ The installer should:
 
 1. Clone or vendor the repo
 2. Point the workspace discovery chain at `skills/skill_ai_agent_cli.md` only
-3. Leave `claude_code.md`, `codex_cli.md`, `opencode_cli.md`, `antigravity_cli.md`, and `grok_cli.md` as on-demand files inside this repo
+3. Leave `claude_code.md`, `codex_cli.md`, `opencode_cli.md`, `antigravity_cli.md`, `grok_cli.md`, and `cursor_cli.md` as on-demand files inside this repo
 4. Put private workspace paths and wrapper rules in a local overlay
 
 Each CLI still has to be installed and logged in on the machine that will run it.
@@ -42,6 +42,7 @@ Each CLI still has to be installed and logged in on the machine that will run it
 | `skills/opencode_cli.md` | Running `opencode run` / `opencode serve` |
 | `skills/antigravity_cli.md` | Running `agy --print` |
 | `skills/grok_cli.md` | Running `grok -p` / `grok --prompt-file` |
+| `skills/cursor_cli.md` | Running `cursor agent -p` |
 
 ## Verified versions
 

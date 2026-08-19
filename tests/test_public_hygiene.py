@@ -25,6 +25,7 @@ REQUIRED_FILES = [
     "skills/opencode_cli.md",
     "skills/antigravity_cli.md",
     "skills/grok_cli.md",
+    "skills/cursor_cli.md",
     ".github/workflows/ci.yml",
 ]
 
@@ -34,6 +35,7 @@ FOCUSED = [
     "opencode_cli.md",
     "antigravity_cli.md",
     "grok_cli.md",
+    "cursor_cli.md",
 ]
 
 SKIP_DIR_NAMES = {".git", ".venv", "__pycache__", ".pytest_cache", "node_modules"}

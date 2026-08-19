@@ -2,9 +2,9 @@
 name: ai-agent-cli
 description: >-
   Routes agents to file-based, non-interactive use of Claude Code, Codex,
-  OpenCode, Antigravity, and Grok Build CLIs. Use when calling another coding
-  agent from a script, building AI-calls-AI pipelines, or choosing among these
-  CLIs.
+  OpenCode, Antigravity, Grok Build, and Cursor CLIs. Use when calling another
+  coding agent from a script, building AI-calls-AI pipelines, or choosing among
+  these CLIs.
 ---
 
 # AI Agent CLI
@@ -48,6 +48,7 @@ Load this root file first. Load exactly one focused file before constructing a c
 | OpenCode | `opencode run` | [`opencode_cli.md`](./opencode_cli.md) | Provider-agnostic model choice, or an HTTP server |
 | Antigravity | `agy --print` | [`antigravity_cli.md`](./antigravity_cli.md) | Gemini via an Antigravity subscription |
 | Grok Build | `grok -p` / `grok --prompt-file` | [`grok_cli.md`](./grok_cli.md) | Grok via an xAI / SuperGrok subscription |
+| Cursor | `cursor agent -p` | [`cursor_cli.md`](./cursor_cli.md) | Cursor-hosted model menu (Composer, Gemini Flash, etc.) via a Cursor subscription |
 
 Preferences are starting points, not a ranking. If the user named a CLI, use that one.
 
