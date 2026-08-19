@@ -2,6 +2,19 @@
 
 ## Changelog
 
+### 2026-08-18
+
+- Added `skills/cursor_cli.md` and routed it from the root skill. Verified against local binaries: Cursor IDE launcher 3.16.17 ships agent CLI 2026.05.01; headless entry is `cursor agent -p` with `--output-format text|json|stream-json`, `--mode plan|ask`, `--trust`, `--sandbox`, `--workspace`, `-w` worktree, and `--resume/--continue`.
+- Verified `gemini-3.7-flash-high` end-to-end on Cursor (file-task creation, text reply, JSON result envelope with usage). `gemini-3.7-flash-low` also works.
+- Recorded the "fast" finding: fast is a model-ID `-fast` suffix, not a flag; Gemini 3.7 Flash has no `-fast` variant; and on 2026-08-18 all `-fast` routes tested (`composer-2.5-fast`, `cursor-grok-4.6-medium-fast`) failed with relay connection retries while base models worked.
+- Recorded the login trap: CLI tokens live in macOS Keychain (`cursor-access-token`/`cursor-refresh-token`) and are separate from IDE login; the browser challenge needs the waiting `cursor agent login` process alive to receive the callback.
+- Privacy review on the Cursor addition: `python3 tests/test_public_hygiene.py` passed; manual scan found no real emails, home paths, or credentials in tracked files.
+
+## Lessons Learned
+- Cursor's auth split bites quietly: the IDE can be logged in (SQLite state) while the CLI holds months-old Keychain tokens. `cursor agent about` is the check; a fresh `cursor agent login` rewrites both entries.
+- Cursor model errors and auth errors can exit 0 when piped. Wrappers must inspect stdout for the error line or the JSON `is_error` field, not just the exit code.
+- "Fast" on Cursor is a per-model-ID suffix and the `-fast` routes can be down independently of base models. Probe with `--list-models` and one cheap `-p` call before batch runs.
+
 ### 2026-08-16
 
 - Rewrote all six skill files to the meta-skill shape (goal, acceptance, resources, enabling guidance, real traps) without changing CLI facts. Restored two AGY drift items: Codex resume stays `codex exec resume <session_id>` or `--last` (not `codex exec --last`); Antigravity stderr check stays “no unhandled error,” not “fatal errors only.”

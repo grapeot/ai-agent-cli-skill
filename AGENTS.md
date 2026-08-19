@@ -16,7 +16,8 @@ ai_agent_cli_skill/
 │   ├── codex_cli.md
 │   ├── opencode_cli.md
 │   ├── antigravity_cli.md
-│   └── grok_cli.md
+│   ├── grok_cli.md
+│   └── cursor_cli.md
 ├── docs/
 ├── tests/
 └── .github/workflows/ci.yml
