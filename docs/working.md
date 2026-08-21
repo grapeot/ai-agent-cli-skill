@@ -2,6 +2,15 @@
 
 ## Changelog
 
+### 2026-08-20
+
+- Re-verified Cursor against the live binaries: launcher still **3.16.17**, agent CLI is now **2026.08.11-e8db854**. Updated `skills/cursor_cli.md`.
+- Documented headless resume: `create-chat` returns a UUID; `--resume <id> -p` plus a new prompt is the next turn. There is no `append` subcommand. `ls` / bare `resume` are interactive TUI, not a scriptable listing.
+- Documented `--model` bracket overrides (`'claude-opus-4-8[context=1m,effort=high,fast=false]'`) alongside the existing `-fast` suffix IDs. Gemini 3.7 Flash still has no `-fast` variant.
+- Added headless-relevant flags that help now lists: `--approve-mcps`, `--auto-review`, `--add-dir`, `--skip-worktree-setup`. Noted `plugin` / `worker` / `bedrock` as out of scope for a normal `-p` turn.
+- Dropped stale `composer-1` as CLI default. `--list-models` lists `auto` as default; `cursor agent about` on this machine showed Gemini 3.7 Flash High as the current model.
+- Aligned the JSON success shape with current docs (`session_id`, `duration_ms`); do not require a `usage` block.
+
 ### 2026-08-18
 
 - Added `skills/cursor_cli.md` and routed it from the root skill. Verified against local binaries: Cursor IDE launcher 3.16.17 ships agent CLI 2026.05.01; headless entry is `cursor agent -p` with `--output-format text|json|stream-json`, `--mode plan|ask`, `--trust`, `--sandbox`, `--workspace`, `-w` worktree, and `--resume/--continue`.
@@ -13,7 +22,8 @@
 ## Lessons Learned
 - Cursor's auth split bites quietly: the IDE can be logged in (SQLite state) while the CLI holds months-old Keychain tokens. `cursor agent about` is the check; a fresh `cursor agent login` rewrites both entries.
 - Cursor model errors and auth errors can exit 0 when piped. Wrappers must inspect stdout for the error line or the JSON `is_error` field, not just the exit code.
-- "Fast" on Cursor is a per-model-ID suffix and the `-fast` routes can be down independently of base models. Probe with `--list-models` and one cheap `-p` call before batch runs.
+- "Fast" on Cursor is still not a `--fast` flag. Prefer a `-fast` suffix ID from `--list-models`, or a quoted `[fast=false]` / `[fast=true]` bracket override on `--model`. Those `-fast` routes can be down independently of base models.
+- Headless follow-ups are `--resume <session_id> -p "next prompt"`, not `ls`. `create-chat` is the scriptable way to mint an ID; JSON `session_id` is the durable handle. Do not treat IDE Composer threads as CLI chats.
 
 ### 2026-08-16
 
