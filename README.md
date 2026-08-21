@@ -1,6 +1,6 @@
 # AI Agent CLI Skill
 
-A filesystem-native skill pack for calling coding-agent CLIs from another agent or script. It covers Claude Code, Codex, OpenCode, Antigravity, and Grok Build.
+A filesystem-native skill pack for calling coding-agent CLIs from another agent or script. It covers Claude Code, Codex, OpenCode, Antigravity, Grok Build, and Cursor.
 
 The point is not a new wrapper binary. The point is a stable contract: write the task to a file, run the vendor CLI non-interactively, and treat the result file as the only success signal.
 
@@ -46,7 +46,7 @@ Each CLI still has to be installed and logged in on the machine that will run it
 
 ## Verified versions
 
-Recorded on 2026-08-16:
+Recorded on 2026-08-16 except Cursor (re-verified 2026-08-20):
 
 | CLI | Command | Version |
 |---|---|---|
@@ -55,6 +55,7 @@ Recorded on 2026-08-16:
 | Antigravity | `agy` | 1.1.13 |
 | Grok Build | `grok` | 1.0.4 |
 | OpenCode | `opencode` | official CLI docs dated 2026-08-16 |
+| Cursor | `cursor agent` | launcher 3.16.17 / agent CLI 2026.08.11-e8db854 |
 
 Re-run `--help` before trusting an older copy of a focused skill.
 
