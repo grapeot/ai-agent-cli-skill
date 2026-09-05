@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Headless `agy --print` invocations
-- **Verified Version**: Antigravity CLI **1.1.13**
+- **Verified Version**: Antigravity CLI **1.1.27**
 - **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
 ## Goal & Boundaries
@@ -20,14 +20,14 @@ Load this file when the user asks for Antigravity / `agy`, or when the root skil
 ### Boundaries & Authentication
 
 - **Authentication Channel**: `agy` authenticates via Antigravity subscription credentials stored in the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` fails to list models, sign in via the Antigravity desktop application. Do not fall back to `GEMINI_API_KEY` (that routes to a distinct API billing path).
-- **Subcommand Boundaries**: 1.1.13 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
+- **Subcommand Boundaries**: 1.1.27 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
 
 ## Acceptance Criteria
 
 Execution is complete and successful only when all four conditions are satisfied:
 
 1. **Exit Code**: Process terminates with code 0.
-2. **Artifact Materialization**: The designated result file exists on disk and is non-empty.
+2. **Artifact Materialization**: The designated result file exists at the intended path on disk and is non-empty. A file appearing somewhere else (e.g., a previous task's scratch directory) is a failed run even with exit code 0.
 3. **Hard Checks**: The result file passes all task-specific constraints and validation checks.
 4. **Clean Error Stream**: stderr contains no unhandled error. (Startup log messages indicating an initial unauthenticated state followed by `silent auth succeeded` are expected and do not indicate failure if exit code is 0).
 
@@ -57,7 +57,7 @@ On managed environments, prefer downloading pinned release assets with published
 ```bash
 agy --print \
   "Read the complete task from /absolute/path/to/prompt.md and follow it exactly." \
-  --model "gemini-3.7-flash-high" \
+  --model "gemini-3.8-flash-high" \
   --mode accept-edits \
   --sandbox \
   --dangerously-skip-permissions \
@@ -72,27 +72,29 @@ agy --print \
 | Flag | Description & Operational Boundary |
 |---|---|
 | `--print` / `-p` | Headless execution for a single prompt. |
-| `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.7-flash-high`. |
+| `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.8-flash-high`. |
 | `--mode` | Operational mode: `accept-edits` or `plan`. |
 | `--sandbox` | Restrict terminal command capabilities. |
 | `--dangerously-skip-permissions` | Auto-approve tool requests. Restrict usage to small trusted scratch directories, only in combination with `--sandbox`, and ensure prompt strictly limits write scope. |
-| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.13). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
+| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.27). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
 | `--log-file` | Path for timestamped JSON/event logs. |
 | `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). |
 | `--json-schema` | Constrain final structured output; applies to final item in `stream-json`. |
 | `--effort` | Reasoning effort: `low`, `medium`, `high`. |
 | `--add-dir` | Add extra accessible workspace directory. |
 | `-c` / `--continue` | Continue the most recent conversation. |
-| `--conversation` | Resume a conversation by ID. Omit `--continue`/`--conversation` for a fresh session. |
+| `--conversation` | Resume a previous conversation by ID. |
+| `--new-project` | Create a new project for this session. Use for one-shot `--print` tasks so the run starts clean instead of inheriting the project's prior conversation. |
+| `--project` | Pin the session to a specific project ID or name. |
 
 > [!NOTE]
 > Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-### Available Models (1.1.13)
+### Available Models (1.1.27)
 
 Verified model list via `agy models`:
-- `gemini-3.7-flash-high` (default), `gemini-3.7-flash-medium`, `gemini-3.7-flash-low`
-- `gemini-3.6-flash-*`, `gemini-3.5-flash-*`
+- `gemini-3.8-flash-high` (default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
+- `gemini-3.7-flash-*`, `gemini-3.6-flash-*`
 - `gemini-3.1-pro-high`, `gemini-3.1-pro-low`
 - `claude-sonnet-4-6`, `claude-opus-4-6-thinking`
 - `gpt-oss-120b-medium`
@@ -107,6 +109,7 @@ Supplying an invalid model name causes immediate non-zero exit and prints the av
 | Assuming no JSON output mode exists | Stale assumption relative to 1.1.13 capabilities | Use `--output-format json` or `stream-json` as needed, but retain result file verification |
 | Relying on default 5m `--print-timeout` | Extended generation tasks abort mid-execution | Explicitly pass `--print-timeout` (e.g., `10m`) |
 | Invoking inside a large private repository | Sensitive sibling files leak into model context | Isolate execution inside a minimal scratch workspace |
+| Relying on a bare `--print` for a one-shot task | Omitting the resume flags does not guarantee a clean session: on 1.1.27 the run resumes the project's most recent conversation, and project scope is resolved by walking up the directory tree — a fresh scratch directory under the same workspace still lands in the same project. The agent can re-execute the previous task and write the artifact into the previous scratch directory, with exit code 0 | Pass `--new-project` (or an explicit `--project <name>`) so the one-shot run starts clean, then verify the artifact materialized in the intended scratch directory |
 | Attempting `agy-ide chat` as headless fallback | Launches interactive GUI interface | Use CLI binary `agy --print` |
 
 ## Official References
