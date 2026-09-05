@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Headless `agy --print` invocations
-- **Verified Version**: Antigravity CLI **1.1.13**
+- **Verified Version**: Antigravity CLI **1.1.26**
 - **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
 ## Goal & Boundaries
@@ -20,7 +20,7 @@ Load this file when the user asks for Antigravity / `agy`, or when the root skil
 ### Boundaries & Authentication
 
 - **Authentication Channel**: `agy` authenticates via Antigravity subscription credentials stored in the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` fails to list models, sign in via the Antigravity desktop application. Do not fall back to `GEMINI_API_KEY` (that routes to a distinct API billing path).
-- **Subcommand Boundaries**: 1.1.13 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
+- **Subcommand Boundaries**: 1.1.26 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
 
 ## Acceptance Criteria
 
@@ -57,7 +57,7 @@ On managed environments, prefer downloading pinned release assets with published
 ```bash
 agy --print \
   "Read the complete task from /absolute/path/to/prompt.md and follow it exactly." \
-  --model "gemini-3.7-flash-high" \
+  --model "gemini-3.8-flash-high" \
   --mode accept-edits \
   --sandbox \
   --dangerously-skip-permissions \
@@ -72,11 +72,11 @@ agy --print \
 | Flag | Description & Operational Boundary |
 |---|---|
 | `--print` / `-p` | Headless execution for a single prompt. |
-| `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.7-flash-high`. |
+| `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.8-flash-high`. |
 | `--mode` | Operational mode: `accept-edits` or `plan`. |
 | `--sandbox` | Restrict terminal command capabilities. |
 | `--dangerously-skip-permissions` | Auto-approve tool requests. Restrict usage to small trusted scratch directories, only in combination with `--sandbox`, and ensure prompt strictly limits write scope. |
-| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.13). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
+| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.26). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
 | `--log-file` | Path for timestamped JSON/event logs. |
 | `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). |
 | `--json-schema` | Constrain final structured output; applies to final item in `stream-json`. |
@@ -88,11 +88,11 @@ agy --print \
 > [!NOTE]
 > Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-### Available Models (1.1.13)
+### Available Models (1.1.26)
 
 Verified model list via `agy models`:
-- `gemini-3.7-flash-high` (default), `gemini-3.7-flash-medium`, `gemini-3.7-flash-low`
-- `gemini-3.6-flash-*`, `gemini-3.5-flash-*`
+- `gemini-3.8-flash-high` (default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
+- `gemini-3.7-flash-*`, `gemini-3.6-flash-*`
 - `gemini-3.1-pro-high`, `gemini-3.1-pro-low`
 - `claude-sonnet-4-6`, `claude-opus-4-6-thinking`
 - `gpt-oss-120b-medium`

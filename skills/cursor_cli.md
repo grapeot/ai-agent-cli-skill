@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Non-interactive `cursor agent` invocations
-- **Verified Version**: Cursor IDE launcher **3.16.17** shipping agent CLI **2026.08.11-e8db854**, verified on **2026-08-20**
+- **Verified Version**: Cursor IDE launcher **3.17.19** shipping agent CLI **2026.08.11-e8db854**, verified on **2026-09-04**
 - **Disambiguation**: This is Cursor's agent CLI, reached through the `cursor` launcher's `agent` subcommand. It is not the standalone `~/.local/bin/agent` binary (that one is Grok Build), and it is not the IDE itself.
 
 ## Goal & Boundaries
@@ -38,7 +38,7 @@ A Cursor execution is complete and valid only when:
 ### Identity Check
 
 ```bash
-cursor --version            # launcher version (3.16.17)
+cursor --version            # launcher version (3.17.19)
 cursor agent about          # CLI version, account, default model
 cursor agent --list-models  # model IDs available to this account
 ```
@@ -51,7 +51,7 @@ Single-turn with file task (preferred):
 
 ```bash
 cursor agent -p "Read the complete task from /absolute/path/to/prompt.md and follow it exactly." \
-  --model gemini-3.7-flash-high \
+  --model gemini-3.8-flash-high \
   --trust \
   --workspace /absolute/path/to/scratch \
   --output-format text
@@ -100,12 +100,13 @@ A first `-p` JSON result already includes `session_id`; `create-chat` is optiona
 
 Other subcommands exist but are out of scope for a normal `-p` turn: `mcp`, `plugin`, `worker`, `bedrock`, `update`, `install-shell-integration`, `generate-rule`, `logout`.
 
-### Models (verified 2026-08-20, Ultra tier)
+### Models (verified 2026-09-04, Ultra tier)
 
 Account-dependent. Representative IDs from `--list-models`:
 
 - `auto` (listed default)
 - `composer-2.5`, `composer-2.5-fast`
+- `gemini-3.8-flash-high`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
 - `gemini-3.7-flash-high`, `gemini-3.7-flash-medium`, `gemini-3.7-flash-low`
 - Claude family `claude-opus-5-*` / `claude-opus-4-8-*` / `claude-sonnet-5-*` / `claude-fable-5-*`
 - GPT family `gpt-5.6-*` / `gpt-5.5-*` / `gpt-5.3-codex-*`
@@ -120,7 +121,7 @@ There is still no `--fast` flag. Speed is selected in two ways:
 1. **Suffix IDs** from `--list-models`: `composer-2.5` vs `composer-2.5-fast`, `cursor-grok-4.6-high` vs `cursor-grok-4.6-high-fast`.
 2. **Bracket overrides** on `--model`: `'claude-opus-4-8[context=1m,effort=high,fast=false]'`. Quote the whole token so the shell does not split on `[` / `]`.
 
-Gemini 3.7 Flash still has no `-fast` ID. Its effort levels are `-low` / `-medium` / `-high`. Requesting `gemini-3.7-flash-high-fast` fails with the available-model list.
+Gemini 3.8 Flash still has no `-fast` ID. Its effort levels are `-low` / `-medium` / `-high`. Requesting `gemini-3.8-flash-high-fast` fails with the available-model list.
 
 `-fast` routes can fail independently of the base model. On 2026-08-18, `composer-2.5-fast` and `cursor-grok-4.6-medium-fast` hit relay connection retries (`agentn.global.api5.cursor.sh`) while base IDs on the same account worked. Probe with `--list-models` and one cheap `-p` call before relying on Fast.
 
@@ -146,7 +147,7 @@ Stale tokens (months old in Keychain) produce `Authentication required` even whe
 | Reading exit code alone | Auth/model errors can exit 0 in piped contexts | Check stdout for error text or JSON `is_error` |
 | Using `cursor agent ls` in a script | Ink TUI; fails without raw-mode stdin | Capture `session_id` from JSON or call `create-chat` |
 | Assuming IDE chats resume via `--resume` | CLI and IDE threads are not a documented shared pool | Resume only CLI `session_id` values |
-| Requesting `gemini-3.7-flash-high-fast` | Model does not exist; error lists all models | Use `-low/-medium/-high` suffixes for Gemini Flash |
+| Requesting `gemini-3.8-flash-high-fast` | Model does not exist; error lists all models | Use `-low/-medium/-high` suffixes for Gemini Flash |
 | Assuming `-fast` always available | Relay connection failures on `-fast` routes (observed 2026-08-18) | Fallback to base model ID or `[fast=false]`; retry another day |
 | Invoking `agent` binary directly | That is Grok Build, not Cursor | Explicitly call `cursor agent` |
 

@@ -2,6 +2,11 @@
 
 ## Changelog
 
+### 2026-09-04
+
+- Re-verified Antigravity against the live binary: CLI is now **1.1.26**. `agy models` lists `gemini-3.8-flash-high/medium/low` (3.5 Flash IDs no longer listed); `--print-timeout` default is still 5m; still no `login` subcommand. Changed the skill default model from `gemini-3.7-flash-high` to `gemini-3.8-flash-high` (command shape, `--model` row, available-models list) and bumped the verified version.
+- Re-verified Cursor: launcher is now **3.17.19** (agent CLI still **2026.08.11-e8db854**). `--list-models` confirms `gemini-3.8-flash-high/medium/low` available. Updated `skills/cursor_cli.md` default model to `gemini-3.8-flash-high`, added 3.8 to the models list, and bumped the verified version.
+
 ### 2026-08-20
 
 - Re-verified Cursor against the live binaries: launcher still **3.16.17**, agent CLI is now **2026.08.11-e8db854**. Updated `skills/cursor_cli.md`.
