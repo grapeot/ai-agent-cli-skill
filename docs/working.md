@@ -2,6 +2,11 @@
 
 ## Changelog
 
+### 2026-09-05
+
+- Re-verified Antigravity against the live binary: CLI is now **1.1.27**. `agy models` list is unchanged from 1.1.26; `--help` confirms no `login` / `run` subcommands, `--print-timeout` default still 5m0s, and new `--new-project` / `--project` flags.
+- Documented a session-scoping trap found in live use: a bare `agy --print` (no resume flags) does not start a clean session — the run resumes the project's most recent conversation, and project scope walks up from cwd, so a fresh scratch directory under the same workspace inherits the previous task's context. Observed failure: AGY re-executed the old task and wrote the artifact into the old scratch tree, exit code 0. Added `--new-project` / `--project` to the flag table, removed the incorrect "fresh session" claim on `--conversation`, added the trap to Known Traps, and tightened the artifact-materialization acceptance criterion to require the intended path.
+
 ### 2026-09-04
 
 - Re-verified Antigravity against the live binary: CLI is now **1.1.26**. `agy models` lists `gemini-3.8-flash-high/medium/low` (3.5 Flash IDs no longer listed); `--print-timeout` default is still 5m; still no `login` subcommand. Changed the skill default model from `gemini-3.7-flash-high` to `gemini-3.8-flash-high` (command shape, `--model` row, available-models list) and bumped the verified version.
@@ -25,6 +30,7 @@
 - Privacy review on the Cursor addition: `python3 tests/test_public_hygiene.py` passed; manual scan found no real emails, home paths, or credentials in tracked files.
 
 ## Lessons Learned
+- A bare `agy --print` is not session-isolated. Project scope walks up from cwd, so any scratch directory under the same workspace resumes the project's most recent conversation — the agent happily re-executes the old task and writes the artifact into the old directory, with exit code 0. One-shot tasks need `--new-project` (or an explicit `--project`), and acceptance must verify the artifact path, not just its existence.
 - Cursor's auth split bites quietly: the IDE can be logged in (SQLite state) while the CLI holds months-old Keychain tokens. `cursor agent about` is the check; a fresh `cursor agent login` rewrites both entries.
 - Cursor model errors and auth errors can exit 0 when piped. Wrappers must inspect stdout for the error line or the JSON `is_error` field, not just the exit code.
 - "Fast" on Cursor is still not a `--fast` flag. Prefer a `-fast` suffix ID from `--list-models`, or a quoted `[fast=false]` / `[fast=true]` bracket override on `--model`. Those `-fast` routes can be down independently of base models.
