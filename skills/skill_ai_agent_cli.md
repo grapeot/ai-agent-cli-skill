@@ -76,7 +76,7 @@ All production calls use files:
 
 ### Wait Model & Process Lifetime
 
-- The wait mechanism is process lifetime, not `sleep`. `claude -p`, `codex exec`, `opencode run`, `agy --print`, and `grok -p` stay up until the agent turn ends. Set the wrapper timeout high enough and wait for exit.
+- The wait mechanism is process lifetime, not `sleep`. `claude -p`, `codex exec`, `opencode run`, `agy --print`, `grok -p`, and `cursor agent -p` stay up until the agent turn ends. Set the wrapper timeout high enough and wait for exit.
 - A vendor slash command that returns immediately (Grok `/deep-research`) is not a completed turn; see [`grok_cli.md`](./grok_cli.md).
 
 ### Workspace Isolation & Nesting Bounds

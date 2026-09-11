@@ -2,6 +2,11 @@
 
 ## Changelog
 
+### 2026-09-10
+
+- Re-verified Cursor launcher 3.19.7 and agent 2026.09.08-6caf4ff, including help, model availability and a successful Gemini 3.8 Flash High JSON turn. Kept the explicit model default and added root routing, file-result read-back, separate log capture, independent-session flags and parent-owned timeout guidance.
+- Removed the unsupported implication that API-key authentication alone establishes separate billing. Kept task-specific writing policy in callers and left all Antigravity documentation unchanged.
+
 ### 2026-09-05
 
 - Re-verified Antigravity against the live binary: CLI is now **1.1.27**. `agy models` list is unchanged from 1.1.26; `--help` confirms no `login` / `run` subcommands, `--print-timeout` default still 5m0s, and new `--new-project` / `--project` flags.
