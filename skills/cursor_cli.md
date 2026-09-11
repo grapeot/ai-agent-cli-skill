@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Non-interactive `cursor agent` invocations
-- **Verified Version**: Cursor IDE launcher **3.17.19** shipping agent CLI **2026.08.11-e8db854**, verified on **2026-09-04**
+- **Verified Version**: Cursor launcher **3.19.7** / agent CLI **2026.09.08-6caf4ff**, verified on **2026-09-10**
 - **Disambiguation**: This is Cursor's agent CLI, reached through the `cursor` launcher's `agent` subcommand. It is not the standalone `~/.local/bin/agent` binary (that one is Grok Build), and it is not the IDE itself.
 
 ## Goal & Boundaries
@@ -15,12 +15,12 @@ Execute a Cursor agent turn non-interactively from a prompt, capture text or JSO
 
 ### When to Load
 
-Load this file when the user requests Cursor / `cursor agent` CLI, or when the root skill router selects it.
+Load the [ai-agent-cli root skill](./skill_ai_agent_cli.md) first, then this focused file when the user requests Cursor / `cursor agent` CLI or the router selects it. Task-specific stages, input isolation and timeout budgets belong in the calling workflow, not this CLI reference.
 
 ### Boundaries & Authentication
 
 - **Entry point**: `cursor agent -p` (the `-p` / `--print` flag is the headless entry; there is no `cursor exec`). The top-level `cursor` binary without `agent` just opens the IDE.
-- **Authentication**: `cursor agent login` (browser challenge) or `CURSOR_API_KEY` / `--api-key` (separate API billing path). Check state with `cursor agent status`, `cursor agent about`, `cursor agent --list-models`.
+- **Authentication**: `cursor agent login` (browser challenge) or `CURSOR_API_KEY` / `--api-key`. These are authentication options; do not infer a separate billing path from the flag alone. Check state with `cursor agent status`, `cursor agent about`, `cursor agent --list-models`.
 - **Token storage**: macOS Keychain entries `cursor-access-token` / `cursor-refresh-token`. IDE login state (SQLite under `~/Library/Application Support/Cursor`) is **not** shared with the CLI; the CLI has its own tokens.
 - **Sessions**: CLI chat IDs are for the CLI. Do not assume an IDE Composer thread and a headless `--resume` ID are interchangeable.
 
@@ -29,7 +29,7 @@ Load this file when the user requests Cursor / `cursor agent` CLI, or when the r
 A Cursor execution is complete and valid only when:
 
 1. **Exit Status**: Process exits with code 0. Note: some auth and model errors also exit 0 — always also check stdout content or the error line.
-2. **Artifact Verification**: If a result file was required, it exists on disk and is non-empty. A fluent stdout summary is not a substitute.
+2. **Artifact Verification**: If a result file was required, it exists at the requested path, is non-empty, and has been read back against the task requirements. A fluent stdout summary is not a substitute.
 3. **JSON Conformance**: With `--output-format json`, stdout is parseable JSON with `type: "result"`, `subtype: "success"`, and `is_error: false`. The `session_id` field is the handle for later `--resume`.
 4. **Identity**: `cursor agent about` shows the expected account tier before batch runs.
 
@@ -38,7 +38,7 @@ A Cursor execution is complete and valid only when:
 ### Identity Check
 
 ```bash
-cursor --version            # launcher version (3.17.19)
+cursor --version            # launcher version (3.19.7)
 cursor agent about          # CLI version, account, default model
 cursor agent --list-models  # model IDs available to this account
 ```
@@ -54,8 +54,12 @@ cursor agent -p "Read the complete task from /absolute/path/to/prompt.md and fol
   --model gemini-3.8-flash-high \
   --trust \
   --workspace /absolute/path/to/scratch \
-  --output-format text
+  --output-format json \
+  > /absolute/path/to/scratch/stdout.json \
+  2> /absolute/path/to/scratch/stderr.log
 ```
+
+Start the process from the scratch directory too. The prompt file must name the output artifact and its requirements; argv only points to that task file. Capture stdout and stderr separately and apply all acceptance checks above. Use `text` only when structured status is not needed.
 
 Structured output:
 
@@ -75,7 +79,7 @@ cursor agent --resume "$chat_id" -p --trust --output-format json \
   "Continue from the previous turn. Read /absolute/path/to/followup.md and follow it."
 ```
 
-A first `-p` JSON result already includes `session_id`; `create-chat` is optional when you need the ID before the first turn. `--continue` resumes the most recent CLI session without naming an ID.
+A first `-p` JSON result already includes `session_id`; `create-chat` is optional when you need the ID before the first turn. `--continue` resumes the most recent CLI session without naming an ID. Independent turns omit both `--resume` and `--continue`; a new process alone does not imply a new conversation when either flag is present.
 
 ### Key Flags
 
@@ -94,13 +98,13 @@ A first `-p` JSON result already includes `session_id`; `create-chat` is optiona
 | `--add-dir <path>` | Extra workspace root; repeatable. |
 | `-w` / `--worktree [name]` | Isolated git worktree at `~/.cursor/worktrees/...`; `--worktree-base` picks the base ref; `--skip-worktree-setup` skips `.cursor/worktrees.json` scripts. |
 | `--resume [chatId]` / `--continue` | Resume a CLI chat and send the argv prompt as the next turn. |
-| `--api-key` / `CURSOR_API_KEY` | API-key auth (separate billing path from subscription). |
+| `--api-key` / `CURSOR_API_KEY` | API-key authentication; billing terms must be checked separately. |
 
 `cursor agent ls` and `cursor agent resume` (no ID) are interactive TUI entry points. `ls` needs a real TTY / raw mode and is not a scriptable chat listing. Use `create-chat`, a captured `session_id`, or `--continue` in automation.
 
 Other subcommands exist but are out of scope for a normal `-p` turn: `mcp`, `plugin`, `worker`, `bedrock`, `update`, `install-shell-integration`, `generate-rule`, `logout`.
 
-### Models (verified 2026-09-04, Ultra tier)
+### Models (verified 2026-09-10, Ultra tier)
 
 Account-dependent. Representative IDs from `--list-models`:
 
@@ -112,7 +116,7 @@ Account-dependent. Representative IDs from `--list-models`:
 - GPT family `gpt-5.6-*` / `gpt-5.5-*` / `gpt-5.3-codex-*`
 - `cursor-grok-4.6-*`, `cursor-grok-4.5-*`, `kimi-k3-*`, `glm-5.2-*`
 
-Re-run `--list-models` before batch jobs. IDs and the account default move.
+The default model for this skill is `gemini-3.8-flash-high` unless the caller specifies another. Re-run `--list-models` before batch jobs and pass `--model` explicitly. IDs and the account default move; `auto` in the model menu does not override the explicit choice.
 
 ### Fast is not a `--fast` flag
 
@@ -129,7 +133,7 @@ Gemini 3.8 Flash still has no `-fast` ID. Its effort levels are `-low` / `-mediu
 
 ### Wait Model
 
-`cursor agent -p` stays up until the agent turn ends (same wait model as `claude -p`). Set wrapper timeouts generously and wait for exit; do not poll.
+`cursor agent -p` stays up until the agent turn ends (same wait model as `claude -p`). There is no `--print-timeout` flag in the verified CLI. The parent process owns timeout enforcement; use the calling task's budget and wait for exit.
 
 ### Login Recovery
 
