@@ -2,6 +2,12 @@
 
 ## Changelog
 
+### 2026-09-23
+
+- Re-verified Codex against the live binary **0.156.1**: `codex exec` now rejects `--full-auto` and `--ask-for-approval` in addition to `-a` (all `unexpected argument`, exit 2); `-o/--output-last-message`, `--json`, `--ephemeral`, and `-c` overrides are unchanged.
+- Documented two 0.156.1 pitfalls in `skills/codex_cli.md`: (1) multiple global npm install roots make `codex update` silently miss the binary actually on `PATH`, producing an endless "upgrade available" loop — repaired by upgrading the stale root with `npm install -g @openai/codex --prefix <root>`; (2) the CLI declares a `web_search` tool by default, which 400s on OpenAI-compatible backends without it — disabled via bare top-level `web_search = false` in the profile config.
+- Replaced the removed approval flags in the documented command shape with `--sandbox` + `-c approval_policy="never"`.
+
 ### 2026-09-21
 
 - Re-verified Antigravity against the live binary: CLI is now **1.2.0**. `agy models` list is unchanged (gemini-3.8/3.7/3.6 flash, gemini-3.1-pro, claude-sonnet-4-6, claude-opus-4-6-thinking, gpt-oss-120b-medium). `--help` confirms no `login` / `run` subcommands; `--print-timeout` default changed from 5m to `0` (wait until the turn completes); new flags `--agent`, `--disable-slash-commands`, `-i/--prompt-interactive`, `--input-format` (NDJSON stdin), `--remote-control`, `--prompt` alias, and the `mic-serve` subcommand.
@@ -61,6 +67,9 @@
 
 ## Lessons Learned
 
+- Codex removed `--full-auto` between 0.14x and 0.15x. Automation that hardcoded it fails with `unexpected argument` on the first turn of every run; the approval knob is now a config override, `-c approval_policy="never"`.
+- `codex update` upgrades the npm prefix that owns `npm`, not the binary that owns `PATH`. With two global roots, the stale one wins on `PATH` and the upgrade prompt loops forever even though each update reports success. `which -a codex` plus comparing each root's `package.json` version is the diagnostic; `npm install -g @openai/codex --prefix <stale-root>` is the repair.
+- A newer Codex CLI can break non-OpenAI providers with no local error: the default `web_search` tool declaration is rejected (HTTP 400) by the provider. The fix is bare top-level `web_search = false` in the config the run actually loads (profile files layer over the base config).
 - `codex exec` and interactive `codex` no longer share the same approval flag. Testing `codex exec -a never --help` is the check; reading top-level `codex --help` is not enough.
 - Antigravity help can gain JSON flags without adding an `agy run` subcommand. Keep treating `--print` as the headless entry.
 - xAI's installer also links `~/.local/bin/agent` to Grok. That name collides with other tools; automation should call `grok`, not `agent`.
