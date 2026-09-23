@@ -48,7 +48,7 @@ Headless entry is `claude -p`. `--tools` still exists. `--effort` is valid again
 
 ### Codex
 
-Headless entry is `codex exec`. On 0.156.1, `codex exec` rejects `-a`, `--ask-for-approval`, and the 0.14x-era `--full-auto`. Use `--sandbox`, `-c approval_policy="never"`, and `-o` / `--output-schema`. Backends without the default `web_search` tool need bare top-level `web_search = false` in the config the run loads.
+Headless entry is `codex exec`. On 0.156.1, `codex exec` rejects `-a`, `--ask-for-approval`, and the 0.14x-era `--full-auto`. Use `--sandbox`, `-c approval_policy="never"`, and `-o` / `--output-schema`. Backends without the default `web_search` tool need bare top-level `web_search = "disabled"` (string variant, not a boolean) in the config the run loads.
 
 ### OpenCode
 
