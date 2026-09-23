@@ -51,7 +51,7 @@ Recorded on 2026-08-16 except Cursor (re-verified 2026-08-20):
 | CLI | Command | Version |
 |---|---|---|
 | Claude Code | `claude` | 2.1.220 |
-| Codex CLI | `codex` | 0.144.6 |
+| Codex CLI | `codex` | 0.156.1 |
 | Antigravity | `agy` | 1.1.13 |
 | Grok Build | `grok` | 1.0.4 |
 | OpenCode | `opencode` | official CLI docs dated 2026-08-16 |

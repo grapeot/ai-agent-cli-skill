@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Headless `agy --print` invocations
-- **Verified Version**: Antigravity CLI **1.1.27**
+- **Verified Version**: Antigravity CLI **1.2.0** (verified 2026-09-21 against `agy --help`, `agy models`, and a live one-shot run)
 - **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
 ## Goal & Boundaries
@@ -20,7 +20,7 @@ Load this file when the user asks for Antigravity / `agy`, or when the root skil
 ### Boundaries & Authentication
 
 - **Authentication Channel**: `agy` authenticates via Antigravity subscription credentials stored in the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` fails to list models, sign in via the Antigravity desktop application. Do not fall back to `GEMINI_API_KEY` (that routes to a distinct API billing path).
-- **Subcommand Boundaries**: 1.1.27 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
+- **Subcommand Boundaries**: 1.2.0 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
 
 ## Acceptance Criteria
 
@@ -76,9 +76,9 @@ agy --print \
 | `--mode` | Operational mode: `accept-edits` or `plan`. |
 | `--sandbox` | Restrict terminal command capabilities. |
 | `--dangerously-skip-permissions` | Auto-approve tool requests. Restrict usage to small trusted scratch directories, only in combination with `--sandbox`, and ensure prompt strictly limits write scope. |
-| `--print-timeout` | Internal execution timeout (defaults to **5m** on 1.1.27). Set explicitly; keep outer wrapper timeout higher so logs can flush. |
+| `--print-timeout` | Internal execution timeout; 1.2.0 defaults to **0** (wait until the turn completes). Set explicitly (e.g. `10m`) so a stuck turn cannot hang forever; keep the outer wrapper timeout higher so logs can flush. |
 | `--log-file` | Path for timestamped JSON/event logs. |
-| `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). |
+| `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). With `json` on 1.2.0, stdout is a single object: `{"conversation_id", "status": "SUCCESS", "response", "duration_seconds", "num_turns", "usage": {...}}`. Still verify the result file on disk; `status` alone does not prove the artifact landed in the intended directory. |
 | `--json-schema` | Constrain final structured output; applies to final item in `stream-json`. |
 | `--effort` | Reasoning effort: `low`, `medium`, `high`. |
 | `--add-dir` | Add extra accessible workspace directory. |
@@ -87,10 +87,12 @@ agy --print \
 | `--new-project` | Create a new project for this session. Use for one-shot `--print` tasks so the run starts clean instead of inheriting the project's prior conversation. |
 | `--project` | Pin the session to a specific project ID or name. |
 
+1.2.0 additionally exposes `--prompt` (alias of `--print`), `--agent`, `--disable-slash-commands`, `-i` / `--prompt-interactive`, `--input-format` (NDJSON stdin for `stream-json`), and `--remote-control`, plus the `mic-serve` subcommand. None of these are needed for the standard one-shot `--print` contract above.
+
 > [!NOTE]
 > Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-### Available Models (1.1.27)
+### Available Models (1.2.0)
 
 Verified model list via `agy models`:
 - `gemini-3.8-flash-high` (default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
@@ -107,9 +109,9 @@ Supplying an invalid model name causes immediate non-zero exit and prints the av
 |---|---|---|
 | Running `agy run ...` | Enters unintended interactive flow; may block waiting for `/dev/tty` | Use top-level flag `agy --print` |
 | Assuming no JSON output mode exists | Stale assumption relative to 1.1.13 capabilities | Use `--output-format json` or `stream-json` as needed, but retain result file verification |
-| Relying on default 5m `--print-timeout` | Extended generation tasks abort mid-execution | Explicitly pass `--print-timeout` (e.g., `10m`) |
+| Relying on the default `--print-timeout` | 1.2.0 defaults to `0` (wait until the turn completes): a stuck turn hangs forever instead of aborting mid-run | Explicitly pass `--print-timeout` (e.g., `10m`) and keep the wrapper timeout higher |
 | Invoking inside a large private repository | Sensitive sibling files leak into model context | Isolate execution inside a minimal scratch workspace |
-| Relying on a bare `--print` for a one-shot task | Omitting the resume flags does not guarantee a clean session: on 1.1.27 the run resumes the project's most recent conversation, and project scope is resolved by walking up the directory tree — a fresh scratch directory under the same workspace still lands in the same project. The agent can re-execute the previous task and write the artifact into the previous scratch directory, with exit code 0 | Pass `--new-project` (or an explicit `--project <name>`) so the one-shot run starts clean, then verify the artifact materialized in the intended scratch directory |
+| Relying on a bare `--print` for a one-shot task | Omitting the resume flags does not guarantee a clean session: on 1.1.27 the run resumed the project's most recent conversation, and project scope is resolved by walking up the directory tree — a fresh scratch directory under the same workspace still lands in the same project. The agent can re-execute the previous task and write the artifact into the previous scratch directory, with exit code 0 | Pass `--new-project` (or an explicit `--project <name>`) so the one-shot run starts clean (flag still required on 1.2.0), then verify the artifact materialized in the intended scratch directory |
 | Attempting `agy-ide chat` as headless fallback | Launches interactive GUI interface | Use CLI binary `agy --print` |
 
 ## Official References
