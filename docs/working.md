@@ -2,6 +2,12 @@
 
 ## Changelog
 
+### 2026-09-21
+
+- Re-verified Antigravity against the live binary: CLI is now **1.2.0**. `agy models` list is unchanged (gemini-3.8/3.7/3.6 flash, gemini-3.1-pro, claude-sonnet-4-6, claude-opus-4-6-thinking, gpt-oss-120b-medium). `--help` confirms no `login` / `run` subcommands; `--print-timeout` default changed from 5m to `0` (wait until the turn completes); new flags `--agent`, `--disable-slash-commands`, `-i/--prompt-interactive`, `--input-format` (NDJSON stdin), `--remote-control`, `--prompt` alias, and the `mic-serve` subcommand.
+- Ran a live one-shot `agy --print` with `--new-project --output-format json` on `gemini-3.8-flash-high`: exit 0, clean stderr, artifact materialized in the intended scratch directory. `--output-format json` stdout on 1.2.0 is a single object with `conversation_id`, `status: "SUCCESS"`, `response`, `duration_seconds`, `num_turns`, and `usage`; documented the shape and kept result-file verification as the acceptance gate.
+- Updated `skills/antigravity_cli.md`: verified version 1.2.0, `--print-timeout` default change, JSON schema note, 1.2.0 flag additions, and trap-table wording.
+
 ### 2026-09-10
 
 - Re-verified Cursor launcher 3.19.7 and agent 2026.09.08-6caf4ff, including help, model availability and a successful Gemini 3.8 Flash High JSON turn. Kept the explicit model default and added root routing, file-result read-back, separate log capture, independent-session flags and parent-owned timeout guidance.
