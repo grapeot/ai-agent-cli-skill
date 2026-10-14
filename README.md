@@ -1,16 +1,17 @@
 # AI Agent CLI Skill
 
-A filesystem-native skill pack for calling coding-agent CLIs from another agent or script. It covers Claude Code, Codex, OpenCode, Antigravity, Grok Build, and Cursor.
+A filesystem-native skill pack for calling coding-agent CLIs from another agent or script, including live Claude Code session control. It covers Claude Code, Codex, OpenCode, Antigravity, Grok Build, and Cursor.
 
-The point is not a new wrapper binary. The point is a stable contract: write the task to a file, run the vendor CLI non-interactively, and treat the result file as the only success signal.
+The product is Markdown, not a new wrapper binary. File-producing one-shot work is verified against its result artifact; live session work is verified against the exact running object, correlated messages and results, and requested artifacts without requiring the worker to exit.
 
 ## What this gives you
 
 - One root skill that decides *whether* to call a CLI agent and *which* one
 - One focused skill per CLI with verified flags, defaults, and failure modes
 - A shared file-response pattern so pipelines do not depend on pipe-friendly models
+- Claude local discovery and inbox messaging, SDK-hosted Remote Control, internal controller boundaries, and a verified normal-tools auto working configuration
 
-This is for agents and automation. Humans can read it, but the acceptance criteria are written for another program.
+This skill pack is designed for autonomous agents and scripts. Humans can read it, but the acceptance criteria are written for programmatic verification.
 
 ## Install
 
@@ -25,32 +26,33 @@ Start from my workspace AGENTS.md or CLAUDE.md. Follow any WORKSPACE.md or skill
 
 The installer should:
 
-1. Clone or vendor the repo
-2. Point the workspace discovery chain at `skills/skill_ai_agent_cli.md` only
-3. Leave `claude_code.md`, `codex_cli.md`, `opencode_cli.md`, `antigravity_cli.md`, `grok_cli.md`, and `cursor_cli.md` as on-demand files inside this repo
-4. Put private workspace paths and wrapper rules in a local overlay
+1. Clone or vendor the repo.
+2. Point the workspace discovery chain at `skills/skill_ai_agent_cli.md` only.
+3. Leave all vendor-focused files and supporting references inside this repo, loaded on demand; do not create a separate symlink or private overlay for an individual sub-skill.
+4. Use a single root symlink when no private policy is needed; otherwise use one root overlay pointing to the canonical root. Resolve relative routes from the canonical root's real directory, not the alias directory. Keep machine paths, credentials, and task state out of this public repo.
 
-Each CLI still has to be installed and logged in on the machine that will run it.
+Each CLI must still be installed and logged in on the machine running it.
 
 ## When to load which file
 
 | File | Load when |
 |---|---|
-| `skills/skill_ai_agent_cli.md` | Choosing a CLI, writing a pipeline, or invoking any of these tools |
-| `skills/claude_code.md` | Running `claude -p` |
+| `skills/skill_ai_agent_cli.md` | Choosing a CLI, writing an automation pipeline, or routing execution |
+| `skills/claude_code.md` | Running Claude Code one-shot tasks, normal tools with auto mode, existing-session control, or Remote Control |
+| `skills/references/claude_sessions.md` | Loaded on demand by `claude_code.md` for live session and Remote Control details; not an additional global entry |
 | `skills/codex_cli.md` | Running `codex exec` |
-| `skills/opencode_cli.md` | Running `opencode run` / `opencode serve` |
+| `skills/opencode_cli.md` | Running `opencode run` or `opencode serve` |
 | `skills/antigravity_cli.md` | Running `agy --print` |
-| `skills/grok_cli.md` | Running `grok -p` / `grok --prompt-file` |
+| `skills/grok_cli.md` | Running `grok -p` or `grok --prompt-file` |
 | `skills/cursor_cli.md` | Running `cursor agent -p` |
 
 ## Verified versions
 
-Recorded on 2026-08-16 except Cursor (re-verified 2026-08-20):
+Vendor baselines are listed below. Claude help and live-session capabilities were re-verified on 2026-10-14; other rows retain their own documented verification scope rather than inheriting that date.
 
 | CLI | Command | Version |
 |---|---|---|
-| Claude Code | `claude` | 2.1.220 |
+| Claude Code | `claude`; Agent SDK | CLI 2.1.299 / SDK 0.3.299: live control, Remote, normal workspace tools and auto; earlier one-shot baseline 2.1.220 |
 | Codex CLI | `codex` | 0.156.1 |
 | Antigravity | `agy` | 1.1.13 |
 | Grok Build | `grok` | 1.0.4 |

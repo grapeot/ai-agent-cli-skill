@@ -2,6 +2,12 @@
 
 ## Changelog
 
+### 2026-10-14
+
+- Extended the single-root router and Claude focused skill to support live session discovery, peer inbox delivery, SDK-hosted Remote Control, and normal workspace tools in auto mode. Added `skills/references/claude_sessions.md` as an on-demand internal reference without creating extra global entry points or sub-skill overlays.
+- Rechecked Claude CLI help on version 2.1.299. Live experiments on macOS (CLI 2.1.299, SDK 0.3.299) verified local registry and inbox targeting, original-session Remote continuity, controller HTTP endpoints (list, get, send, history, SSE streaming, and interrupt), iOS round trips, and workspace tool execution (Bash, Write, Read) under effective auto mode without manual confirmations. Maintained strict boundaries regarding persistent-server workers, unsupported runtime methods, and incomplete SSE streams.
+- Established the distinction between one-shot exit/artifact verification and live identity-and-event acceptance. SDK hosts must maintain open transports; restoring a transcript or creating a background copy is not general live append (running-background TTY behavior is a separate case). Symlinked roots resolve relative paths from their canonical directory.
+
 ### 2026-09-23
 
 - Re-verified Codex against the live binary **0.156.1**: `codex exec` now rejects `--full-auto` and `--ask-for-approval` in addition to `-a` (all `unexpected argument`, exit 2); `-o/--output-last-message`, `--json`, `--ephemeral`, and `-c` overrides are unchanged.
@@ -47,6 +53,10 @@
 - Privacy review on the Cursor addition: `python3 tests/test_public_hygiene.py` passed; manual scan found no real emails, home paths, or credentials in tracked files.
 
 ## Lessons Learned
+
+- Remote Control requires eligible native claude.ai credentials and enabled feature evaluation. An experimental run disabled feature evaluation (`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`) while injecting credentials into `CLAUDE_CODE_OAUTH_TOKEN`, causing a generic initialization error. Using native credentials and restoring feature evaluation succeeded; do not misinterpret confounded test failures as feature absence or expose credentials to debug them.
+- A functional SDK working session requires the standard `claude_code` preset, explicit `settingSources` (`user,project,local`), the caller workspace root, and default tools. A stripped no-tools fixture is not a working agent setup. Effective auto mode and verified tool results, rather than an always-allow callback, confirm permission behavior.
+- Live session identity spans multiple distinct attributes: local UUID, live PID, socket address, cloud ID, working directory, and transcript storage scope. A resumed session working in a new root can retain its original storage key; transient registry read contention or empty root-scoped history queries do not warrant session forks. Transport receipts alone do not confirm execution, and controller events are distinct from worker ingress.
 - A bare `agy --print` is not session-isolated. Project scope walks up from cwd, so any scratch directory under the same workspace resumes the project's most recent conversation — the agent happily re-executes the old task and writes the artifact into the old directory, with exit code 0. One-shot tasks need `--new-project` (or an explicit `--project`), and acceptance must verify the artifact path, not just its existence.
 - Cursor's auth split bites quietly: the IDE can be logged in (SQLite state) while the CLI holds months-old Keychain tokens. `cursor agent about` is the check; a fresh `cursor agent login` rewrites both entries.
 - Cursor model errors and auth errors can exit 0 when piped. Wrappers must inspect stdout for the error line or the JSON `is_error` field, not just the exit code.

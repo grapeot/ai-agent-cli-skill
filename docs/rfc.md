@@ -2,72 +2,84 @@
 
 ## Decision
 
-Ship a public skill pack with exactly one workspace-facing root file. Put each vendor CLI in its own focused file. Keep private paths and wrapper policy in the consuming workspace.
+Ship a public, filesystem-native skill pack with exactly one workspace-facing root entry point (`skills/skill_ai_agent_cli.md`). Maintain all vendor-focused skills and supporting reference documents inside the repository.
 
-## Why split
+A consuming workspace integrates the pack by creating a single root symlink or a single root overlay (when local private policy is required). Workspaces must not create separate symlinks or private overlays for individual vendor sub-skills.
 
-One file is easier to open and worse to maintain. Claude and Antigravity already needed their own contracts. Codex, OpenCode, and Grok are now the same size. A router plus focused files matches how this workspace installs every other multi-skill public repo.
+## Architecture & Modular Design
 
-The root file answers: should I call a CLI agent, which one, and what is the shared I/O contract?
+A single monolithic guide is unmaintainable across multiple rapidly evolving CLI tools. Vendor tools have distinct authentication lifecycles, permission models, and command-line structures. A modular hierarchy—comprising a lightweight router, vendor-specific operational guides, and deep protocol references—matches standard workspace skill discovery patterns.
 
-A focused file answers: what is the current command shape, what must be true before I start, and how do I know it finished?
+- **Root Router (`skills/skill_ai_agent_cli.md`)**: Evaluates the task requirements, selects the appropriate vendor tool, and routes the agent to the matching focused skill. When accessed via a symlink, relative links resolve from the canonical root file's directory.
+- **Focused Skills (`skills/<vendor>.md`)**: Detail exact command-line syntax, flag matrices, verification gates, and common operational pitfalls for that tool.
+- **Internal References (`skills/references/<topic>.md`)**: Contain low-level protocol schemas and socket/HTTP interfaces loaded on demand by a focused skill.
 
-## File-response contract
+## File-Response & Verification Contract
 
-Production calls use three artifacts:
+### One-Shot File Execution
 
-1. A task file the child agent must read
-2. A result file the child agent must write
-3. Captured stdout, stderr, and any vendor log file
+File-producing tasks rely on three distinct filesystem artifacts:
 
-Stdout is a completion note, not the product. If the result file is missing or empty, the call failed even when the process exited 0.
+1. **Prompt File**: A self-contained document containing complete instructions, context, schemas, and file paths.
+2. **Result File**: The complete output artifact written directly to disk by the child process.
+3. **Execution Logs**: Captured stdout, stderr, and vendor diagnostic files stored independently.
 
-Do not pipe the task body through stdin unless the vendor CLI documents stdin as the prompt channel *and* the prompt is short enough to audit. Prefer `--prompt-file` / "read this path" driver prompts.
+Standard output serves as an execution log, not the deliverable product. If the result file is absent or empty, the invocation is considered failed regardless of process exit status. Conversational status queries that do not request a file deliverable verify the returned text directly without inventing a placeholder file.
 
-## Public / private split
+### Live Session Control
 
-Public files may mention:
+Live sessions follow an identity-and-event contract:
+- The orchestrator maintains open transports and monitors streaming events or bounded status reads.
+- Success requires correlating the submitted message UUID with a verified assistant response or tangible outcome. Process exit, socket writes, and HTTP 200 responses alone do not prove turn execution or completion.
+- Session lifecycle states are kept strictly separate: an interrupt halts turn execution while preserving session state; it is not equivalent to process termination, server shutdown, or session archiving.
 
-- Vendor install URLs
-- Flag names and verified versions
-- Generic paths such as `/tmp/example-session/` or `$PWD/tmp/`
+## Public / Private Separation
 
-Public files must not mention:
+Public repository documents are restricted to:
+- Official vendor documentation links and installation commands.
+- Verified command-line flags and tested version metadata.
+- Generic example paths (e.g., `/tmp/example-session/` or `$PWD/tmp/`).
 
-- A specific home directory or company monorepo
-- Real emails, phones, or vault paths
-- One workspace's subagent-wrapping policy, except as a generic warning against unbounded nesting
+Public documents must never contain:
+- Machine-specific home directory paths or internal usernames.
+- Real email addresses, phone numbers, or password-manager URI schemes.
+- Unmasked API keys, session tokens, or private authorization headers.
+- Private organizational workflows or proprietary subagent wrapping rules.
 
-A consuming workspace should add a private overlay when it needs a fixed start directory, a required model, or a local wrapping rule.
+Workspaces requiring custom start directories, specific model preferences, or environment wrappers should define them in a local root overlay outside this repository.
 
-## CLI-specific notes
+## Vendor Interface Summaries
 
 ### Claude Code
 
-Headless entry is `claude -p`. `--tools` still exists. `--effort` is valid again on 2.1.220. Do not treat a Claude-routed subagent as Claude Code.
+Headless entry is `claude -p`. Flags and live-session capabilities were re-verified on CLI 2.1.299 and Agent SDK 0.3.299. Deep live-session protocols (inbox socket delivery, SDK-hosted Remote Control, and internal controller HTTP operations) are documented in `skills/references/claude_sessions.md`. Standard working sessions use the caller's workspace root, normal tools, and effective `auto` mode. Unsupported runtime APIs and internal controller routes are explicitly demarcated from public features.
 
 ### Codex
 
-Headless entry is `codex exec`. On 0.156.1, `codex exec` rejects `-a`, `--ask-for-approval`, and the 0.14x-era `--full-auto`. Use `--sandbox`, `-c approval_policy="never"`, and `-o` / `--output-schema`. Backends without the default `web_search` tool need bare top-level `web_search = "disabled"` (string variant, not a boolean) in the config the run loads.
+Headless execution uses `codex exec`. In CLI 0.156.1, flags `-a`, `--ask-for-approval`, and `--full-auto` are rejected. The documented non-interactive recipe uses `--sandbox` with `-c approval_policy="never"`, plus `-o` or `--output-schema` as needed. Custom OpenAI-compatible backends lacking the default web-search tool need the top-level string unit override `web_search = "disabled"` (not a boolean) in the configuration actually loaded.
 
 ### OpenCode
 
-`opencode run` is valid on its own. `serve` plus `--attach` is an optimization for cold start and session control, not a required two-step.
+Headless execution uses `opencode run` directly. Running `opencode serve` with `--attach` is an optional optimization for persistent session reuse and cold-start minimization, not a mandatory prerequisite.
 
 ### Antigravity
 
-Headless entry is top-level `agy --print`. There is no `agy run`. 1.1.13 adds `--output-format json|stream-json` and `--json-schema`. Default `--print-timeout` is 5m.
+Headless execution is invoked via `agy --print`. The `agy run` subcommand does not exist. Version 1.1.13 introduced `--output-format json|stream-json` and `--json-schema`, with a 5m print-timeout default in that version; later defaults differ. Use the focused skill's verification scope and set the execution timeout explicitly.
 
 ### Grok Build
 
-This is xAI's `grok` CLI, not the community `superagent-ai/grok-cli` and not Groq. Headless entry is `grok -p` or `grok --prompt-file`. `grok agent` is the SDK/stdio transport, not the default automation path.
+Headless execution is provided by xAI's `grok -p` or `grok --prompt-file`, not the community `superagent-ai/grok-cli` or Groq. `grok agent` is the SDK/stdio transport, not the default automation entry. Passing `/deep-research` as a plain prompt terminates immediately because the background workflow is killed on exit; dispatch it via the in-turn `workflow` tool.
 
-## Testing
+### Cursor
 
-There is no live-CLI CI. Tests check repo shape and public hygiene. Interface drift is caught by re-reading `--help` when a skill is edited.
+Headless execution uses `cursor agent -p`. CLI credentials reside in macOS Keychain independently of the Cursor IDE. Model speed options are specified via `-fast` model suffixes or bracket overrides (`[fast=true]`) rather than a standalone CLI flag.
 
-## Alternatives rejected
+## Testing Strategy
 
-- One giant guide: already failed to stay current.
-- A Python wrapper around all five CLIs: another compatibility surface, no user request.
-- Vendor skill folders such as `.claude/skills`: this pack is tool-agnostic Markdown.
+Automated CI runs `tests/test_public_hygiene.py` for file presence, root vendor coverage, version markers, and private-data patterns. Relative-link resolution is checked separately during review. Live vendor invocations are excluded from default CI; interface drift is verified using `--help` and `--version` when updating focused skills.
+
+## Rejected Alternatives
+
+- **Monolithic Single-File Guide**: Proven unmaintainable and prone to flag rot as individual CLIs update on divergent cadences.
+- **Unified Python CLI Wrapper**: Introduces an unnecessary maintenance burden and wrapper abstractions without user demand.
+- **Vendor-Specific Skill Packaging**: Limits cross-tool interoperability and locks workflows into vendor-specific distribution formats.
