@@ -17,7 +17,9 @@ ai_agent_cli_skill/
 │   ├── opencode_cli.md
 │   ├── antigravity_cli.md
 │   ├── grok_cli.md
-│   └── cursor_cli.md
+│   ├── cursor_cli.md
+│   └── references/
+│       └── claude_sessions.md # loaded through the Claude focused skill
 ├── docs/
 ├── tests/
 └── .github/workflows/ci.yml
