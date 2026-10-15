@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Headless `agy --print` invocations
-- **Verified Version**: Antigravity CLI **1.2.0** (verified 2026-09-21 against `agy --help`, `agy models`, and a live one-shot run)
+- **Verified Version**: Antigravity CLI **1.3.5** (verified 2026-10-14 against `agy --help`, `agy models`, and live one-shot runs)
 - **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
 ## Goal & Boundaries
@@ -20,7 +20,7 @@ Load this file when the user asks for Antigravity / `agy`, or when the root skil
 ### Boundaries & Authentication
 
 - **Authentication Channel**: `agy` authenticates via Antigravity subscription credentials stored in the system keyring. It does not read `GEMINI_API_KEY`. If `agy models` fails to list models, sign in via the Antigravity desktop application. Do not fall back to `GEMINI_API_KEY` (that routes to a distinct API billing path).
-- **Subcommand Boundaries**: 1.2.0 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
+- **Subcommand Boundaries**: 1.3.5 has no `agy login` subcommand. There is no `agy run` subcommand; `--print` / `-p` is a top-level flag.
 
 ## Acceptance Criteria
 
@@ -73,32 +73,32 @@ agy --print \
 |---|---|
 | `--print` / `-p` | Headless execution for a single prompt. |
 | `--model` | Target model id. Always specify explicitly. Skill default: `gemini-3.8-flash-high`. |
-| `--mode` | Operational mode: `accept-edits` or `plan`. |
+| `--mode` | Operational mode: `accept-edits`, `auto`, or `plan`. |
 | `--sandbox` | Restrict terminal command capabilities. |
 | `--dangerously-skip-permissions` | Auto-approve tool requests. Restrict usage to small trusted scratch directories, only in combination with `--sandbox`, and ensure prompt strictly limits write scope. |
-| `--print-timeout` | Internal execution timeout; 1.2.0 defaults to **0** (wait until the turn completes). Set explicitly (e.g. `10m`) so a stuck turn cannot hang forever; keep the outer wrapper timeout higher so logs can flush. |
+| `--print-timeout` | Internal execution timeout; defaults to **0** (`0s`, wait until the turn completes). Set explicitly (e.g. `10m`) so a stuck turn cannot hang forever; keep the outer wrapper timeout higher so logs can flush. |
 | `--log-file` | Path for timestamped JSON/event logs. |
-| `--output-format` | `text` (default), `json`, `stream-json` (introduced in 1.1.13). With `json` on 1.2.0, stdout is a single object: `{"conversation_id", "status": "SUCCESS", "response", "duration_seconds", "num_turns", "usage": {...}}`. Still verify the result file on disk; `status` alone does not prove the artifact landed in the intended directory. |
+| `--output-format` | `text` (default), `json`, `stream-json`. With `json`, stdout is a single object: `{"conversation_id", "status": "SUCCESS", "response", "duration_seconds", "num_turns", "usage": {...}}`. Still verify the result file on disk; `status` alone does not prove the artifact landed in the intended directory. |
 | `--json-schema` | Constrain final structured output; applies to final item in `stream-json`. |
-| `--effort` | Reasoning effort: `low`, `medium`, `high`. |
+| `--effort` | Reasoning effort: `low`, `medium`, `high`, `xhigh`, `max`. |
 | `--add-dir` | Add extra accessible workspace directory. |
-| `-c` / `--continue` | Continue the most recent conversation. |
-| `--conversation` | Resume a previous conversation by ID. |
-| `--new-project` | Create a new project for this session. Use for one-shot `--print` tasks so the run starts clean instead of inheriting the project's prior conversation. |
-| `--project` | Pin the session to a specific project ID or name. |
+| `-c` / `--continue` | Continue the most recent conversation. Omit for one-shot tasks. |
+| `--conversation` | Resume a previous conversation by ID. Omit for one-shot tasks. |
+| `--project` | Pin the session to a specific project ID or name. When omitted (and `--new-project` is not set), `agy` uses `default-cli-project` (`CLI Project`) and scopes workspace access to the current working directory. |
+| `--new-project` | Create a persistent project entry in `~/.gemini/config/projects/<uuid>.json`. **Do not use for routine one-shot `--print` runs**: `~/.gemini/config/projects/` is shared with the Antigravity desktop application while CLI conversations live in `~/.gemini/antigravity-cli/`, so `--new-project` floods the desktop UI with empty projects. |
 
-1.2.0 additionally exposes `--prompt` (alias of `--print`), `--agent`, `--disable-slash-commands`, `-i` / `--prompt-interactive`, `--input-format` (NDJSON stdin for `stream-json`), and `--remote-control`, plus the `mic-serve` subcommand. None of these are needed for the standard one-shot `--print` contract above.
+1.3.5 additionally exposes `--prompt` (alias of `--print`), `--agent`, `--disable-slash-commands`, `-i` / `--prompt-interactive`, `--input-format` (NDJSON stdin for `stream-json`), and `--remote-control`, plus the `mic-serve` subcommand. None of these are needed for the standard one-shot `--print` contract above.
 
 > [!NOTE]
 > Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-### Available Models (1.2.0)
+### Available Models (1.3.5)
 
 Verified model list via `agy models`:
-- `gemini-3.8-flash-high` (default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
-- `gemini-3.7-flash-*`, `gemini-3.6-flash-*`
-- `gemini-3.1-pro-high`, `gemini-3.1-pro-low`
-- `claude-sonnet-4-6`, `claude-opus-4-6-thinking`
+- `gemini-3.8-flash-high` (skill default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
+- `gemini-4-argon-high`, `gemini-4-argon-medium`, `gemini-4-argon-low`
+- `claude-opus-5-5-high`, `claude-opus-5-5-medium`, `claude-opus-5-5-low`
+- `claude-sonnet-5-5-high`, `claude-sonnet-5-5-medium`, `claude-sonnet-5-5-low`
 - `gpt-oss-120b-medium`
 
 Supplying an invalid model name causes immediate non-zero exit and prints the available model list. Do not attempt silent fallbacks.
@@ -108,10 +108,11 @@ Supplying an invalid model name causes immediate non-zero exit and prints the av
 | Trigger | Failure Mode | Remedy |
 |---|---|---|
 | Running `agy run ...` | Enters unintended interactive flow; may block waiting for `/dev/tty` | Use top-level flag `agy --print` |
-| Assuming no JSON output mode exists | Stale assumption relative to 1.1.13 capabilities | Use `--output-format json` or `stream-json` as needed, but retain result file verification |
-| Relying on the default `--print-timeout` | 1.2.0 defaults to `0` (wait until the turn completes): a stuck turn hangs forever instead of aborting mid-run | Explicitly pass `--print-timeout` (e.g., `10m`) and keep the wrapper timeout higher |
+| Assuming no JSON output mode exists | Stale assumption relative to 1.1.13+ capabilities | Use `--output-format json` or `stream-json` as needed, but retain result file verification |
+| Relying on the default `--print-timeout` | Defaults to `0` (`0s`, wait until the turn completes): a stuck turn hangs forever instead of aborting mid-run | Explicitly pass `--print-timeout` (e.g., `10m`) and keep the wrapper timeout higher |
 | Invoking inside a large private repository | Sensitive sibling files leak into model context | Isolate execution inside a minimal scratch workspace |
-| Relying on a bare `--print` for a one-shot task | Omitting the resume flags does not guarantee a clean session: on 1.1.27 the run resumed the project's most recent conversation, and project scope is resolved by walking up the directory tree — a fresh scratch directory under the same workspace still lands in the same project. The agent can re-execute the previous task and write the artifact into the previous scratch directory, with exit code 0 | Pass `--new-project` (or an explicit `--project <name>`) so the one-shot run starts clean (flag still required on 1.2.0), then verify the artifact materialized in the intended scratch directory |
+| Passing `--new-project` on every one-shot `--print` run | Creates a permanent `<uuid>.json` in `~/.gemini/config/projects/` per run; because the desktop app shares that directory while CLI conversations stay in `~/.gemini/antigravity-cli/`, thousands of empty projects accumulate in the desktop UI | Omit `--new-project` (and omit `-c`/`--continue`/`--conversation`) so one-shot runs create fresh conversations under `default-cli-project`; set `cwd` to the scratch directory and use absolute paths for both `prompt.md` and the output artifact |
+| Using relative paths in the driver prompt | If a project config binds another folder or `cwd` was not switched to the scratch directory, relative paths can resolve against the wrong directory and exit 0 | `cd` into the isolated scratch directory before invoking `agy --print`, use absolute paths in both the driver prompt and `prompt.md`, and verify the artifact materialized at the intended path |
 | Attempting `agy-ide chat` as headless fallback | Launches interactive GUI interface | Use CLI binary `agy --print` |
 
 ## Official References
