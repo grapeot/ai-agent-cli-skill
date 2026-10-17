@@ -90,9 +90,30 @@ File-producing tasks and long content processing must use filesystem artifacts:
 - Clean NUL characters out of prompt strings (`replace('\0', '')`) before passing them to subprocesses.
 - In-memory messages are reserved for short status queries, live message delivery, and streaming event callbacks. Keep private task text, raw transcripts, and authentication material out of public examples and persistent logs.
 
+### Before dispatch: progress and recovery
+
+Before launching a long or file-producing CLI turn, the caller must define its supervision and recovery contract in the calling workflow:
+
+- **Stage & Artifact**: Scope the turn to one bounded stage (for example, implementation, test execution, or review) and name the concrete artifact it must produce. For a conversational status query, define the returned evidence instead of inventing a disk artifact.
+- **Task-Appropriate Budgets**: Set both an outer total deadline and an inspection or no-progress budget suited to the task. Timing thresholds belong in the caller workflow, not as a global minute limit across all CLIs.
+- **Evidence Locations**: Specify where stdout, stderr, structured event logs, and any target result file are written so progress can be verified without guessing paths.
+- **Owned Scope**: Track the exact attempt identity, session handle when available, and child processes owned by this invocation so recovery never collides with an active writer or unrelated process.
+- **Stop & Recovery Action**: Decide in advance how to halt on deadline or failure, preserve logs and diffs, inspect partial artifacts, and narrow the next step. Bound retries and never repeat the same broad task without new evidence.
+
+Distinguish actual phase progression from mere process liveness:
+
+- **Phase progress vs. liveness**: A live PID, open transport, or repeated polling of an old subprocess is not task progress; verify that tool results and artifacts are advancing the current stage.
+- **Buffered output vs. hang**: Quiet stdout or stderr may reflect stream buffering or a long tool step rather than a hung CLI. Use available structured events, same-run logs, or artifact activity before declaring a stall; log growth alone is not proof of useful progress.
+- **Explicit failure**: A terminal command/test failure or broken prerequisite fails that stage even if the wrapper or a spawned child remains alive. Record it and choose a bounded recovery action. A recoverable warning or intermediate failed tool call does not by itself determine the entire CLI turn's final outcome; the acceptance gate still applies.
+
+Respect the host environment's execution model:
+
+- **No-polling contracts**: When the host requires native background completion notifications without parent-side progress checks, preserve that contract. Place supervision inside the owned job or a supported streaming event path; do not turn a timer into a polling bypass.
+- **Stage splitting**: When mid-turn supervision is unavailable, split the work into shorter, independently verifiable stages before dispatch. Do not invent unsupported CLI callback flags, wakeup hooks, or background daemons.
+
 ### Wait Model & Process Lifetime
 
-- **One-shot execution**: Wait for process completion. Tools such as `claude -p`, `codex exec`, `opencode run`, `agy --print`, `grok -p`, and `cursor agent -p` remain running until the turn completes. Configure the wrapper timeout accordingly.
+- **One-shot execution**: These foreground commands remain running until the turn completes. Wait for process completion within the supervision and recovery contract above; foreground semantics do not justify an oversized silent wait. This applies to `claude -p`, `codex exec`, `opencode run`, `agy --print`, `grok -p`, and `cursor agent -p`.
 - **Live sessions**: Hold the input transport open and observe correlated events or bounded status reads. Assign the host an explicit lifecycle; a detached launcher exiting does not signal task completion.
 - **Immediate-return commands**: Vendor slash commands that return immediately while spawning background workers (such as Grok `/deep-research`) do not represent finished turns; see [`grok_cli.md`](./grok_cli.md).
 
