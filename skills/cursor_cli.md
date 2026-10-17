@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Non-interactive `cursor agent` invocations
-- **Verified Version**: Cursor launcher **3.19.7** / agent CLI **2026.09.08-6caf4ff**, verified on **2026-09-10**
+- **Verified Version**: Cursor launcher **3.24.18** / agent CLI **2026.09.18-9a7762b**, verified on **2026-10-16** (help, `--list-models`, and an isolated read/write probe on an eligible paid tier)
 - **Disambiguation**: This is Cursor's agent CLI, reached through the `cursor` launcher's `agent` subcommand. It is not the standalone `~/.local/bin/agent` binary (that one is Grok Build), and it is not the IDE itself.
 
 ## Goal & Boundaries
@@ -38,7 +38,7 @@ A Cursor execution is complete and valid only when:
 ### Identity Check
 
 ```bash
-cursor --version            # launcher version (3.19.7)
+cursor --version            # launcher version (3.24.18)
 cursor agent about          # CLI version, account, default model
 cursor agent --list-models  # model IDs available to this account
 ```
@@ -60,6 +60,19 @@ cursor agent -p "Read the complete task from /absolute/path/to/prompt.md and fol
 ```
 
 Start the process from the scratch directory too. The prompt file must name the output artifact and its requirements; argv only points to that task file. Capture stdout and stderr separately and apply all acceptance checks above. Use `text` only when structured status is not needed.
+
+Verified isolated read/write probe on 2026-10-16. The caller selected this model. The skill default remains `gemini-3.8-flash-high`:
+
+```bash
+cursor agent -p "Read the task file and follow it." \
+  --model grok-4.7-high-fast \
+  --trust \
+  --force \
+  --workspace /absolute/path/to/scratch \
+  --output-format json
+```
+
+That probe exited 0. stdout was `type: "result"`, `subtype: "success"`, `is_error: false`. The requested output file existed and was read back. stderr showed one connection-lost/retry sequence, then the same requested model route succeeded. Treat that stderr sequence as recoverable: it is not an automatic fatal failure, and it was not a fallback to another model. The parent applies an outer process timeout. There is no `--print-timeout` flag.
 
 Structured output:
 
@@ -91,7 +104,7 @@ A first `-p` JSON result already includes `session_id`; `create-chat` is optiona
 | `--model` | Model ID from `--list-models`, or a quoted parameterized ID such as `'claude-opus-4-8[context=1m,effort=high,fast=false]'`. Always pass explicitly. |
 | `--trust` | Trust the workspace without prompting (print mode only). Required for smooth headless runs. |
 | `--sandbox` | `enabled` / `disabled`; overrides config. |
-| `-f` / `--force` / `--yolo` | Auto-approve commands unless explicitly denied. |
+| `-f` / `--force` / `--yolo` | Auto-approve commands unless explicitly denied. The 2026-10-16 read/write probe passed `--force` together with `--trust`. `--trust` skips the workspace trust prompt; `--force` skips command approval prompts. |
 | `--approve-mcps` | Auto-approve MCP servers (headless). |
 | `--auto-review` | Server classifier auto-runs safe tool calls and prompts for the rest. |
 | `--workspace` | Working directory (defaults to cwd). |
@@ -102,38 +115,47 @@ A first `-p` JSON result already includes `session_id`; `create-chat` is optiona
 
 `cursor agent ls` and `cursor agent resume` (no ID) are interactive TUI entry points. `ls` needs a real TTY / raw mode and is not a scriptable chat listing. Use `create-chat`, a captured `session_id`, or `--continue` in automation.
 
-Other subcommands exist but are out of scope for a normal `-p` turn: `mcp`, `plugin`, `worker`, `bedrock`, `update`, `install-shell-integration`, `generate-rule`, `logout`.
+Other subcommands exist but are out of scope for a normal `-p` turn: `mcp`, `plugin`, `worker`, `bedrock`, `update`, `install-shell-integration`, `generate-rule`, `logout`. `persist` (`list` / `attach` / `stop`) is in current help only as surviving a terminal or SSH disconnect; see Foreground CLI vs host-asynchronous execution.
 
-### Models (verified 2026-09-10, Ultra tier)
+### Models
 
-Account-dependent. Representative IDs from `--list-models`:
+Account-dependent. `--list-models` remains authoritative. Representative IDs from the 2026-09-10 Ultra-tier listing, plus Grok 4.7 IDs rechecked on 2026-10-16 for an eligible paid tier:
 
-- `auto` (listed default)
+- `auto` (listed default on 2026-09-10)
 - `composer-2.5`, `composer-2.5-fast`
 - `gemini-3.8-flash-high`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
 - `gemini-3.7-flash-high`, `gemini-3.7-flash-medium`, `gemini-3.7-flash-low`
 - Claude family `claude-opus-5-*` / `claude-opus-4-8-*` / `claude-sonnet-5-*` / `claude-fable-5-*`
 - GPT family `gpt-5.6-*` / `gpt-5.5-*` / `gpt-5.3-codex-*`
-- `cursor-grok-4.6-*`, `cursor-grok-4.5-*`, `kimi-k3-*`, `glm-5.2-*`
+- Grok 4.7, verified 2026-10-16, without the old `cursor-` prefix: `grok-4.7-low`, `grok-4.7-low-fast`, `grok-4.7-medium`, `grok-4.7-medium-fast`, `grok-4.7-high`, `grok-4.7-high-fast`, `grok-4.7-xhigh`, `grok-4.7-xhigh-fast`. The 2026-09-10 listing used `cursor-grok-4.6-*` and `cursor-grok-4.5-*`.
+- `kimi-k3-*`, `glm-5.2-*` (2026-09-10 listing)
 
-The default model for this skill is `gemini-3.8-flash-high` unless the caller specifies another. Re-run `--list-models` before batch jobs and pass `--model` explicitly. IDs and the account default move; `auto` in the model menu does not override the explicit choice.
+The default model for this skill remains `gemini-3.8-flash-high` unless the caller specifies another. Keep a caller-requested model, including when a Fast route logs a retry. Re-run `--list-models` before batch jobs and pass `--model` explicitly. IDs and the account default move; `auto` in the model menu does not override the explicit choice.
 
 ### Fast is not a `--fast` flag
 
 There is still no `--fast` flag. Speed is selected in two ways:
 
-1. **Suffix IDs** from `--list-models`: `composer-2.5` vs `composer-2.5-fast`, `cursor-grok-4.6-high` vs `cursor-grok-4.6-high-fast`.
+1. **Suffix IDs** from `--list-models`: `composer-2.5` vs `composer-2.5-fast`, `grok-4.7-high` vs `grok-4.7-high-fast`. Current Grok 4.7 IDs omit the older `cursor-` prefix.
 2. **Bracket overrides** on `--model`: `'claude-opus-4-8[context=1m,effort=high,fast=false]'`. Quote the whole token so the shell does not split on `[` / `]`.
 
 Gemini 3.8 Flash still has no `-fast` ID. Its effort levels are `-low` / `-medium` / `-high`. Requesting `gemini-3.8-flash-high-fast` fails with the available-model list.
 
-`-fast` routes can fail independently of the base model. On 2026-08-18, `composer-2.5-fast` and `cursor-grok-4.6-medium-fast` hit relay connection retries (`agentn.global.api5.cursor.sh`) while base IDs on the same account worked. Probe with `--list-models` and one cheap `-p` call before relying on Fast.
+`-fast` routes can fail independently of the base model. On 2026-08-18, `composer-2.5-fast` and `cursor-grok-4.6-medium-fast` hit relay connection retries (`agentn.global.api5.cursor.sh`) while base IDs on the same account worked. On 2026-10-16, `grok-4.7-high-fast` logged one connection-lost/retry sequence and then completed on that same ID (exit 0, JSON success, artifact read back). A single retry line is recoverable. Keep the caller-requested model when Fast fails or retries; do not silently replace it. Probe with `--list-models` and one cheap `-p` call before relying on a new Fast route.
 
 ## Enabling Guidance
 
 ### Wait Model
 
-`cursor agent -p` stays up until the agent turn ends (same wait model as `claude -p`). There is no `--print-timeout` flag in the verified CLI. The parent process owns timeout enforcement; use the calling task's budget and wait for exit.
+`cursor agent -p` is foreground. It stays up until the agent turn ends (same wait model as `claude -p`). There is no `--print-timeout` flag. The parent process applies an outer timeout and waits for exit.
+
+### Foreground CLI vs host-asynchronous execution
+
+The CLI process itself returns when the turn finishes. A host harness can still keep its main agent responsive by starting a lightweight wrapper in the background. The wrapper waits on `cursor agent -p`, captures stdout and stderr, checks success JSON and that the requested output file exists and reads back, then returns a completion manifest through the harness completion notification. The wrapper must not repeat the coding or research work.
+
+This split was exercised on 2026-10-16 with a background wrapper around the `grok-4.7-high-fast` read/write probe above. The wrapper completed automatically after the CLI exited 0.
+
+Current help also lists `cursor agent persist` with `list`, `attach`, and `stop`. That help only says sessions survive a terminal or SSH disconnect. Detached lifecycle, headless suitability, and completion callbacks are not verified. `persist` is not a validated async job API. Do not invent flags for it.
 
 ### Login Recovery
 
@@ -152,7 +174,8 @@ Stale tokens (months old in Keychain) produce `Authentication required` even whe
 | Using `cursor agent ls` in a script | Ink TUI; fails without raw-mode stdin | Capture `session_id` from JSON or call `create-chat` |
 | Assuming IDE chats resume via `--resume` | CLI and IDE threads are not a documented shared pool | Resume only CLI `session_id` values |
 | Requesting `gemini-3.8-flash-high-fast` | Model does not exist; error lists all models | Use `-low/-medium/-high` suffixes for Gemini Flash |
-| Assuming `-fast` always available | Relay connection failures on `-fast` routes (observed 2026-08-18) | Fallback to base model ID or `[fast=false]`; retry another day |
+| Assuming `-fast` always available | Some `-fast` routes failed on 2026-08-18 while base IDs worked. On 2026-10-16, `grok-4.7-high-fast` logged one connection-lost/retry and then succeeded on that same model | Judge process exit, JSON `is_error`, and the artifact. A single retry line is recoverable. Keep the caller-requested model |
+| Treating `cursor agent persist` as a headless job API | Help only documents survival across a terminal or SSH disconnect. Detached lifecycle, headless suitability, and completion callbacks are unverified | Keep `-p` in the foreground. Use a host wrapper when the main agent must stay responsive. Do not invent persist flags |
 | Invoking `agent` binary directly | That is Grok Build, not Cursor | Explicitly call `cursor agent` |
 
 ## Official References

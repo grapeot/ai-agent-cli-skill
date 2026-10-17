@@ -2,6 +2,14 @@
 
 ## Changelog
 
+### 2026-10-16
+
+- Re-verified Cursor launcher **3.24.18** and agent CLI **2026.09.18-9a7762b** on an eligible paid tier, using current help, `--list-models`, and one isolated read/write probe. Updated `skills/cursor_cli.md`. Left the generic default model `gemini-3.8-flash-high` unchanged; the probe used a caller-selected `grok-4.7-high-fast`.
+- Recorded the account-relevant Grok 4.7 IDs without the old `cursor-` prefix: `grok-4.7-low`, `grok-4.7-low-fast`, `grok-4.7-medium`, `grok-4.7-medium-fast`, `grok-4.7-high`, `grok-4.7-high-fast`, `grok-4.7-xhigh`, `grok-4.7-xhigh-fast`. Availability stays account-dependent; `--list-models` stays authoritative.
+- Documented the probe command: `cursor agent -p` with `--model grok-4.7-high-fast --trust --force --workspace <scratch> --output-format json`. Still no `--print-timeout`; the parent applies the process timeout. The probe exited 0 with JSON `type=result`, `subtype=success`, `is_error=false`, and the requested output file was read back. stderr showed one connection-lost/retry sequence; the same requested model then succeeded. That sequence was recoverable, not a fatal failure and not a model fallback.
+- Documented foreground `-p` versus a lightweight host wrapper that waits, captures stdout and stderr, validates JSON and the artifact, and returns a completion manifest. The wrapper must not redo the work. A background wrapper completed automatically on this probe. `cursor agent persist` (`list` / `attach` / `stop`) is in help only as surviving terminal or SSH disconnect. Its detached lifecycle, headless suitability, and completion callbacks are unverified, so it is not a validated async job API.
+- This entry is the initial verified probe for a skill PR that should be opened now and kept unmerged until at least two real Cursor work rounds add operational lessons. Android and iOS implementation rounds and final review are not complete. Append those lessons only after the rounds finish.
+
 ### 2026-10-14
 
 - Re-verified Antigravity against the live binary **1.3.5** (`agy --version`, `agy --help`, `agy models`, and back-to-back headless `--print` runs). Updated the model menu (`gemini-4-argon-*`, `gemini-3.8-flash-*`, `claude-opus-5-5-*`, `claude-sonnet-5-5-*`, `gpt-oss-120b-medium`), `--mode` (`auto`), and `--effort` (`xhigh`, `max`).
@@ -56,6 +64,10 @@
 
 ## Lessons Learned
 
+- On 2026-10-16, `grok-4.7-high-fast` printed one connection-lost/retry sequence and then finished on that same model (exit 0, JSON success, artifact read back). That stderr is recoverable. A Fast retry is not a reason to replace the caller-requested model.
+- `cursor agent -p` is foreground. Host asynchrony is a wrapper around that process: wait, capture stdout and stderr, validate JSON and the artifact, then notify completion. `cursor agent persist` is not that wrapper. Its help only covers surviving a terminal or SSH disconnect; detached lifecycle and completion callbacks are unverified.
+- Grok 4.7 model IDs rechecked on 2026-10-16 omit the old `cursor-` prefix. Pass the ID from `--list-models`. `cursor-grok-4.7-*` is not a current ID.
+- The 2026-10-16 Cursor refresh verifies the initial probe only. Android and iOS implementation rounds and final review have not been done. Append their lessons after those rounds finish.
 - Remote Control requires eligible native claude.ai credentials and enabled feature evaluation. An experimental run disabled feature evaluation (`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`) while injecting credentials into `CLAUDE_CODE_OAUTH_TOKEN`, causing a generic initialization error. Using native credentials and restoring feature evaluation succeeded; do not misinterpret confounded test failures as feature absence or expose credentials to debug them.
 - A functional SDK working session requires the standard `claude_code` preset, explicit `settingSources` (`user,project,local`), the caller workspace root, and default tools. A stripped no-tools fixture is not a working agent setup. Effective auto mode and verified tool results, rather than an always-allow callback, confirm permission behavior.
 - Live session identity spans multiple distinct attributes: local UUID, live PID, socket address, cloud ID, working directory, and transcript storage scope. A resumed session working in a new root can retain its original storage key; transient registry read contention or empty root-scoped history queries do not warrant session forks. Transport receipts alone do not confirm execution, and controller events are distinct from worker ingress.
