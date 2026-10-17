@@ -151,6 +151,16 @@ Gemini 3.8 Flash still has no `-fast` ID. Its effort levels are `-low` / `-mediu
 
 ## Enabling Guidance
 
+### Use the stream to supervise, not just archive
+
+Pair Cursor invocations with the root skill's [Before dispatch: progress and recovery](./skill_ai_agent_cli.md#before-dispatch-progress-and-recovery) contract. Passing `--output-format stream-json --stream-partial-output` exposes partial turn activity, but redirecting stdout to an NDJSON file only archives the stream unless the owned job or allowed host mechanism evaluates it.
+
+- **Capture the session handle early**: Record `session_id` from the initial stream event (or mint one beforehand with `cursor agent create-chat`) so an interrupted turn has a deterministic `--resume` target even if no final `result` envelope arrives.
+- **Inspect event and tool progression**: Judge progress from completed tool calls, file writes, and failure evidence in the NDJSON stream, not from PID liveness or empty stderr alone. Repeated checks of the same dependency can generate events without advancing the task. Do not assume a universal event schema across vendors or invent Cursor monitoring flags.
+- **Detect children that outlive the caller**: A turn can keep checking a child process whose lifetime extends beyond the outer CLI deadline. Do not assume the host timeout reaped every child; it is not a Cursor child-cleanup guarantee.
+- **Recover without colliding writers**: On outer timeout or transport failure, preserve the NDJSON log, stderr, git diff, and actual workspace files, then inspect processes owned by this invocation before starting a `--resume` turn or replacement writer.
+- **Separate file recovery from invocation success**: A stale `in_progress` manifest is not execution authority, and usable files left behind by a timed-out turn do not make that invocation succeed. Structured-output invocation success still requires exit 0, a final `type: "result"` / `subtype: "success"` / boolean `is_error: false` envelope, and independent artifact readback. The existing text-output acceptance rule remains unchanged.
+
 ### Wait Model
 
 `cursor agent -p` is foreground. It stays up until the agent turn ends (same wait model as `claude -p`). There is no `--print-timeout` flag. The parent process applies an outer timeout and waits for exit.
