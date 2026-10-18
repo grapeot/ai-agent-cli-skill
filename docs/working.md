@@ -2,6 +2,12 @@
 
 ## Changelog
 
+### 2026-10-18
+
+- Added a bounded progress-checkpoint standard to the root skill: the parent still waits for the host's native completion notification; the wrapper that owns the foreground CLI may read its structured event stream at coarse checkpoints (for example, every 30–60 seconds) to capture the session handle, detect early failure, and report stage changes. Checkpoints are not completion signals, must not duplicate the work or become a tight loop, and must not treat log growth or a tool call as success.
+- Documented Cursor's `stream-json` event taxonomy for host-asynchronous turns (`system/init` session handle, `tool_call/started|completed`, `connection/reconnecting|reconnected`, `retry/starting|resuming`, `thinking` and `assistant` output) and the remaining acceptance gate: exit 0, a final `result`/`success`/boolean `is_error: false`, and independent artifact readback.
+- Recorded a 2026-10-18 isolated stream probe: exit 1 with `RetriableError: WritableIterable is closed`, 226 events, the requested artifact present, and no final `result` event. This is a failed invocation; keep the init `session_id` for a possible `--resume` and do not infer success from the artifact alone. Documentation only; no CLI, model, authentication, or runtime configuration changes.
+
 ### 2026-10-17
 
 - Added pre-dispatch supervision and recovery guidance to the root skill and linked Cursor stream-supervision guidance: define a bounded stage, caller-owned total and no-progress budgets, evidence paths, owned process scope, and stop/recovery actions before dispatch. Evaluate existing stream logs rather than archiving NDJSON passively; preserve native no-polling contracts and keep failed invocation recovery separate from success. Documentation only; no vendor flag, model, authentication, or runtime configuration changes.
@@ -103,6 +109,7 @@
 
 ## Lessons Learned
 
+- A Cursor `stream-json` turn can emit a complete-looking event stream and leave the requested artifact, yet still fail without a final `result` event (observed 2026-10-18: exit 1, `RetriableError: WritableIterable is closed`, 226 events). Keep the init `session_id`, treat the invocation as failed, and do not report success from the artifact or log growth alone.
 - Codex removed `--full-auto` between 0.14x and 0.15x. Automation that hardcoded it fails with `unexpected argument` on the first turn of every run; the approval knob is now a config override, `-c approval_policy="never"`.
 - `codex update` upgrades the npm prefix that owns `npm`, not the binary that owns `PATH`. With two global roots, the stale one wins on `PATH` and the upgrade prompt loops forever even though each update reports success. `which -a codex` plus comparing each root's `package.json` version is the diagnostic; `npm install -g @openai/codex --prefix <stale-root>` is the repair.
 - A newer Codex CLI can break non-OpenAI providers with no local error: the default `web_search` tool declaration is rejected (HTTP 400) by the provider. The fix is bare top-level `web_search = "disabled"` in the config the run actually loads (profile files layer over the base config). The key is a string unit variant — `codex doctor -c web_search=<value>` is the cheap way to probe which strings parse without an API call.

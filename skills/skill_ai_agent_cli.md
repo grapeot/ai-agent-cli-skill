@@ -108,8 +108,14 @@ Distinguish actual phase progression from mere process liveness:
 
 Respect the host environment's execution model:
 
-- **No-polling contracts**: When the host requires native background completion notifications without parent-side progress checks, preserve that contract. Place supervision inside the owned job or a supported streaming event path; do not turn a timer into a polling bypass.
+- **No-polling contracts**: When the host requires native background completion notifications without parent-side progress checks, preserve that contract. The parent must not poll the child; an owning wrapper may use the bounded checkpoints below on its own child's structured stream, but must not turn them into a tight loop or a substitute for completion.
 - **Stage splitting**: When mid-turn supervision is unavailable, split the work into shorter, independently verifiable stages before dispatch. Do not invent unsupported CLI callback flags, wakeup hooks, or background daemons.
+
+#### Bounded progress checkpoints
+
+The parent agent must wait for the host's native completion notification and must not poll the child. To observe progress during a run, the wrapper that owns the foreground CLI may read that CLI's structured event stream at coarse checkpoints (for example, every 30–60 seconds) to capture the session handle, detect early failure, and report stage changes.
+
+A checkpoint is not a completion signal: it must not become a tight loop, duplicate or re-run the child's work, or treat log growth or a tool call as success. On clear failure, stop the turn and preserve the log, exit code, and partial artifacts for recovery. The main agent still receives completion through the normal background notification path.
 
 ### Wait Model & Process Lifetime
 
