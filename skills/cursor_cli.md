@@ -161,6 +161,12 @@ Pair Cursor invocations with the root skill's [Before dispatch: progress and rec
 - **Recover without colliding writers**: On outer timeout or transport failure, preserve the NDJSON log, stderr, git diff, and actual workspace files, then inspect processes owned by this invocation before starting a `--resume` turn or replacement writer.
 - **Separate file recovery from invocation success**: A stale `in_progress` manifest is not execution authority, and usable files left behind by a timed-out turn do not make that invocation succeed. Structured-output invocation success still requires exit 0, a final `type: "result"` / `subtype: "success"` / boolean `is_error: false` envelope, and independent artifact readback. The existing text-output acceptance rule remains unchanged.
 
+### Progress checkpoints for host-asynchronous turns
+
+To enable coarse progress observation during a host-asynchronous turn, run with `--output-format stream-json --stream-partial-output` and redirect the NDJSON stream to a log file. The owning wrapper or background subagent can read that log at coarse checkpoints and classify events by `type` and `subtype`: `system` / `init` carries the `session_id`; `tool_call` / `started` and `completed` show tool activity; `connection` / `reconnecting` and `reconnected` show transport retries; `retry` / `starting` and `resuming` show invocation retries; and `thinking` and `assistant` events show model output.
+
+Do not treat assistant deltas, tool calls, or a growing log as completion. A stream turn can end without a final result: in an isolated probe on 2026-10-18, a run exited 1 with `RetriableError: WritableIterable is closed`, wrote the requested artifact, emitted 226 events, and produced no `result` event. Partial artifacts do not turn a failed invocation into a success; preserve the init `session_id` and resume that CLI session when appropriate, and keep the caller-requested model without silently substituting another model on a retry. Success requires exit code 0, a final `result` event with `subtype: "success"` and boolean `is_error: false`, and independent artifact readback.
+
 ### Wait Model
 
 `cursor agent -p` is foreground. It stays up until the agent turn ends (same wait model as `claude -p`). There is no `--print-timeout` flag. The parent process applies an outer timeout and waits for exit.
