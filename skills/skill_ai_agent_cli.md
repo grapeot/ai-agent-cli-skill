@@ -3,7 +3,7 @@ name: ai-agent-cli
 description: >-
   Routes agents to non-interactive coding-agent CLIs and live Claude Code
   session control. Use when calling Claude Code, Codex, OpenCode, Antigravity,
-  Grok Build, or Cursor; discovering or messaging an existing Claude session;
+  Grok Build (including native Imagine video), or Cursor; discovering or messaging an existing Claude session;
   connecting it to Remote Control; or observing and interrupting work.
 ---
 
@@ -50,7 +50,7 @@ If this root file is exposed through a symlink, resolve its canonical path first
 | Codex | `codex exec` | [`codex_cli.md`](./codex_cli.md) | Structured last-message / JSON Schema automation |
 | OpenCode | `opencode run` | [`opencode_cli.md`](./opencode_cli.md) | Provider-agnostic model choice, or an HTTP server |
 | Antigravity | `agy --print` | [`antigravity_cli.md`](./antigravity_cli.md) | Gemini models via an Antigravity subscription |
-| Grok Build | `grok -p` / `grok --prompt-file` | [`grok_cli.md`](./grok_cli.md) | Grok models via an xAI / SuperGrok subscription |
+| Grok Build | `grok -p` / `grok --prompt-file` | [`grok_cli.md`](./grok_cli.md) | Grok models and native Imagine reference-to-video via an eligible account |
 | Cursor | `cursor agent -p` | [`cursor_cli.md`](./cursor_cli.md) | Cursor-hosted model menu (Composer, Gemini Flash, etc.) via a Cursor subscription |
 
 Preferences are starting heuristics, not rigid rankings. If the user or task specifies a CLI, use that one.
