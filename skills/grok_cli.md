@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Non-interactive `grok` invocations
-- **Verified Version**: Grok Build **1.0.4** (`grok 1.0.4 (d846eb93d94d)`), reported by official stable channel on **2026-08-16**
+- **Verified Version**: Grok Build **1.0.70** (`f50904eaee6c`, stable), checked with local version/help/models on **2026-10-29**. Native Imagine inputs were checked against the installed bundled skill; no paid generation was run for this documentation update. Older execution observations below retain their version labels.
 - **Disambiguation**: This is xAI's Grok Build CLI. It is not Groq, and it is not the community `superagent-ai/grok-cli` binary that also names itself `grok`.
 
 ## Goal & Boundaries
@@ -13,6 +13,8 @@
 
 Execute a Grok coding-agent turn non-interactively from a prompt file, capture structured stdout or JSON payloads, and ensure the agent persists verified result artifacts to disk.
 
+For native image-to-video work, also load [`references/grok_imagine_video.md`](./references/grok_imagine_video.md). It covers the in-session `reference_to_video` tool, paid-call authorization, output recovery, media verification, and loop acceptance. Load the executing installation's `$HOME/.grok/bundled/skills/imagine/SKILL.md` before constructing the tool request.
+
 ### When to Load
 
 Load this file when the user requests Grok / Grok Build / `grok` CLI, or when the root skill router selects it.
@@ -20,7 +22,7 @@ Load this file when the user requests Grok / Grok Build / `grok` CLI, or when th
 ### Boundaries & Authentication
 
 - **Binary Naming**: Always execute `grok`, never `agent` (the installer may link `$HOME/.local/bin/agent`, but `agent` is an ambiguous generic name).
-- **Authentication Selection**: Authenticate via `grok login` (subscription / OAuth) or `XAI_API_KEY`. Check active status with `grok models`.
+- **Authentication Selection**: Authenticate via `grok login` (subscription / OAuth) or `XAI_API_KEY`. `grok models` checks the model menu, but can list defaults while logged out; require explicit current authentication evidence before a paid task. Do not print stored credentials or initiate login without authorization.
 - **API Key Precedence**: If `XAI_API_KEY` is present in the environment, version 1.0.4 prioritizes the API key over stored subscription credentials in `~/.grok/auth.json`. Explicitly unset `XAI_API_KEY` to enforce subscription usage.
 - **Remote Login Modes**: For headless/SSH systems, use `grok login --device-auth` (alias `--device-code`). Do not combine with `--oauth` (they are mutually exclusive). `--oauth` requires a local browser capable of reaching `127.0.0.1`.
 
@@ -41,13 +43,13 @@ A Grok execution is complete and valid only when:
 installer="$(mktemp)"
 curl -fsSL https://x.ai/cli/install.sh -o "$installer"
 # Review the script, then:
-bash "$installer" 1.0.4
+bash "$installer" 1.0.70
 rm -f "$installer"
 grok --version
 ```
 
 - Default binary location: `$HOME/.grok/bin/grok` (with potential symlinks at `$HOME/.local/bin/grok` and `$HOME/.local/bin/agent`).
-- Verification check: `grok --version` must output `grok 1.0.4` (or pinned version), and `grok models` must list xAI models (e.g., `grok-4.6`).
+- Verification check: `grok --version` must match the intended version, and `grok models` must show the expected xAI model menu. The menu alone is not proof of login or video entitlement.
 
 ### Command Shapes
 

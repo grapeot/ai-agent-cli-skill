@@ -2,6 +2,11 @@
 
 ## Changelog
 
+### 2026-10-29
+
+- Added an on-demand Grok native Imagine video reference covering the in-session `reference_to_video` contract, explicit paid-call/retry authorization, credential and ZDR boundaries, headless permissions, correlated session-output recovery, stream/decode verification, and evidence-based loop acceptance. Routed it through the existing Grok focused skill and single root.
+- Rechecked Grok Build 1.0.70 (`f50904eaee6c`) version/help/models, login/update help, and the installed bundled Imagine skill. This documentation verification made no paid image/video calls and changed no privacy configuration; prior generation observations are identified separately from current interface checks.
+
 ### 2026-10-18
 
 - Added a bounded progress-checkpoint standard to the root skill: the parent still waits for the host's native completion notification; the wrapper that owns the foreground CLI may read its structured event stream at coarse checkpoints (for example, every 30–60 seconds) to capture the session handle, detect early failure, and report stage changes. Checkpoints are not completion signals, must not duplicate the work or become a tight loop, and must not treat log growth or a tool call as success.
@@ -76,6 +81,8 @@
 
 ## Lessons Learned
 
+- Grok can exit 0 with a structured error, or cancel after generating a clip but before a permission-gated copy. Recover only the output correlated to that exact run, and distinguish failed invocation status from independently accepted recovered media. A model menu alone does not establish login or video entitlement.
+- Equal pinned start/end images are a generation constraint, not a measured seamless-loop guarantee. Generated MP4s have included audio and an attached cover; select the inspected main stream and verify the delivered file rather than assuming a stream copy removed every unwanted stream.
 - Archiving `stream-json` does not supervise a turn. In a verified anonymized case, an 18-minute outer deadline expired with 126 completed tool calls recorded, and a 10-minute follow-up made 39 calls including 8 checks of the same old UI dependency. Its child process outlived the original CLI deadline. Existing capture was adequate; progress evaluation and stop/recovery decisions failed. Promote bounded supervision to the pre-dispatch contract rather than repeat the same broad retry or trust a stale `in_progress` manifest.
 - `stream-json` with `--stream-partial-output` showed recoverable progress when a final-only JSON capture was empty after an outer timeout of about 600–1200 seconds. Keep the init `session_id` even without a `result`. `--resume` of that id continued the same UUID, including after an interrupted turn. Resume that CLI id. `--continue` names no id, and an IDE thread id is a different pool.
 - Structured-output success is exit 0, a last object with `type` `result`, `subtype` `success`, and boolean `is_error` false, plus readback of the required artifact. Text output instead requires inspecting the response for errors. `jq`'s `//` treats `false` as absent. Empty redirected shell output does not mean a build or test passed; read the report or log. A started manifest, a candidate path list, or a checkpoint is not source validity.
