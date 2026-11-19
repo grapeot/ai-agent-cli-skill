@@ -4,7 +4,7 @@
 
 - **Type**: Tool / Focused Skill
 - **Target**: Headless `agy --print` invocations
-- **Verified Version**: Antigravity CLI **1.3.5** (verified 2026-10-14 against `agy --help`, `agy models`, and live one-shot runs)
+- **Verified Version**: Antigravity CLI **1.5.12** (verified 2026-11-18 against `agy --help`, `agy models`, and a live `gemini-4-neon-high` one-shot run)
 - **Disambiguation**: `agy-ide` is the IDE launcher; `agy-ide chat` opens the GUI. Automation uses the `agy` binary.
 
 ## Goal & Boundaries
@@ -92,11 +92,11 @@ agy --print \
 > [!NOTE]
 > Headless `--print` runs inherit persistent policies from `settings.json`. Review global and project AGY settings before production execution.
 
-### Available Models (1.3.5)
+### Available Models (1.5.12)
 
-Verified model list via `agy models`:
+Selected models verified via `agy models`; query the command for the complete current list:
 - `gemini-3.8-flash-high` (skill default), `gemini-3.8-flash-medium`, `gemini-3.8-flash-low`
-- `gemini-4-argon-high`, `gemini-4-argon-medium`, `gemini-4-argon-low`
+- `gemini-4-neon-high`, `gemini-4-neon-xhigh`, `gemini-4-neon-medium`, `gemini-4-neon-low`
 - `claude-opus-5-5-high`, `claude-opus-5-5-medium`, `claude-opus-5-5-low`
 - `claude-sonnet-5-5-high`, `claude-sonnet-5-5-medium`, `claude-sonnet-5-5-low`
 - `gpt-oss-120b-medium`
