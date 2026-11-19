@@ -2,6 +2,10 @@
 
 ## Changelog
 
+### 2026-11-18
+
+- Rechecked Antigravity CLI 1.5.12 version, help, and model list. Added the Neon High/XHigh/Medium/Low identifiers to the focused skill's selected-model list. A fresh text-only `gemini-4-neon-high` call with `--mode plan --print-timeout 2m --output-format json` exited 0 and returned `SUCCESS` with the requested Chinese notice. No model-quality comparison or file-tool verification was performed; the generic Flash default is unchanged.
+
 ### 2026-10-29
 
 - Added an on-demand Grok native Imagine video reference covering the in-session `reference_to_video` contract, explicit paid-call/retry authorization, credential and ZDR boundaries, headless permissions, correlated session-output recovery, stream/decode verification, and evidence-based loop acceptance. Routed it through the existing Grok focused skill and single root.
